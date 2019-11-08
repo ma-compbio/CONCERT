@@ -39,7 +39,6 @@ from sklearn.svm import SVR
 import sklearn as sk
 import matplotlib.pyplot as plt
 import tensorflow as tf
-# from tensorflow.examples.tutorials.mnist import input_data
 from sklearn.manifold import LocallyLinearEmbedding
 from sklearn.decomposition import PCA
 from sklearn.decomposition import IncrementalPCA
@@ -68,7 +67,6 @@ from utility_1 import get_model2a1_attention1_2_sequential, get_model2a1_attenti
 from utility_1 import get_model2a_attention1_sequential, get_model2a_attention2_sequential, get_model2a2_attention
 from utility_1 import read_predict, read_predict_weighted
 from utility_1 import sample_select2a_pre
-# from utility_1 import get_model2a2_attention, get_model2a2_1, get_model2a2_1_predict
 from utility_1 import get_model2a1_attention, get_model2a1_sequential
 from utility_1 import get_model2a1_attention_1, get_model2a1_attention_2, get_model2a_sequential
 from utility_1 import search_region_include, search_region, aver_overlap_value
