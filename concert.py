@@ -180,300 +180,6 @@ class roc_callback(keras.callbacks.Callback):
 		self.x = X
 		self.y = y
 
-	def on_train_begin(self, logs={}):
-		return
-
-	def on_train_end(self, logs={}):
-		return
-
-	def on_epoch_begin(self, epoch, logs={}):
-		return
-
-	def on_epoch_end(self, epoch, logs={}):
-		y_proba = model.predict(self.x,batch_size = BATCH_SIZE)
-		y_pred = ((y_proba > 0.5) * 1.0).reshape((-1))
-		y_test = self.y
-		print("accuracy", np.sum(y_test == y_pred) / len(y_test))
-
-		print("roc", roc_auc_score(y_test, y_proba))
-		print("aupr", average_precision_score(y_test, y_proba))
-
-		print("precision", precision_score(y_test, y_pred))
-		print("recall", recall_score(y_test, y_pred))
-		return
-
-	def on_batch_begin(self, batch, logs={}):
-		return
-
-	def on_batch_end(self, batch, logs={}):
-		return
-
-def read_phyloP(species_name):
-
-	path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-	file1 = pd.read_csv(filename1,sep='\t')
-	
-	col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1['serial'])
-	num_sample = len(chrom_ori)
-	chrom_vec = np.unique(chrom_ori)
-	chrom_vec = ['chr22']
-
-	for chrom_id in chrom_vec:
-		filename1 = '%s/phyloP/hg19.phyloP100way.%s.bedGraph'%(path1,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		len1 = stop-start
-		b = np.where(chrom_ori==chrom_id)[0]
-		num_sample1 = len(b)
-		vec1 = np.zeros((num_sample1,16))
-		print(chrom_id,len(chrom),len(b))
-		cnt = 0
-		b1 = [-1]
-		for i in b:
-			# if cnt==0:
-			# 	b1 = np.where((start>=start_ori[i])&(stop<stop_ori[i]))[0]
-			# else:
-			# 	t1 = b1[-1]+1
-			# 	while start[t1]<start_ori[i]:
-			# 		t1 += 1
-			# 	if start[t1]>=start_ori[i]:
-			# 		id1 = t1
-			# 		while start[t1]<start_ori[i]:
-			# 			t1 += 1
-
-			t1 = b1[-1]+1
-			b1 = np.where((start[t1:]>=start_ori[i])&(stop[t1:]<stop_ori[i]))[0]+t1
-			# b1 = []
-			# while start[t1]<start_ori[i]:
-			# 	t1 += 1
-			# if start[t1]>=start_ori[i]:
-			# 	id1 = t1
-			# 	while stop[t1]<stop_ori[i]:
-			# 		t1 += 1
-			# 	id2 = t1
-			# 	b1 = np.asarray(range(id1,id2))
-			if len(b1)==0:
-				b1 = [-1]
-				continue
-
-			t_len1, t_score = np.asarray(len1[b1]), np.asarray(score[b1])
-			s1 = 0
-			s2 = np.sum(t_len1)
-			i1 = cnt
-			for j in range(0,12):
-				temp1 = (j-8)*2.5
-				b2 = np.where((t_score<temp1+2.5)&(t_score>=temp1))[0]
-				print(b2)
-				vec1[i1,j] = np.sum(t_len1[b2])*1.0/s2
-				s1 = s1+temp1*vec1[i1,j]
-
-			vec1[i1,12] = s1   # average
-			vec1[i1,13] = np.median(t_score)
-			vec1[i1,14] = np.max(t_score)
-			vec1[i1,15] = np.min(t_score)
-			
-			cnt += 1
-			if cnt%1000==0:
-				print(cnt,len(b1),s2,vec1[i1,12:16])
-				break
-		
-		# dict1 = dict()
-		# dict1['vec'], dict1['index'] = vec1,b
-		# np.save('phyloP_%s'%(chrom_id),dict1,allow_pickle=True)
-		fields = ['index']
-		for j in range(0,12):
-			temp1 = (j-8)*2.5
-			fields.append('%s-%s'%(temp1,temp1+2.5))
-		fields.extend(range(0,4))
-		data1 = pd.DataFrame(data = np.hstack((b[:,np.newaxis],vec1)),columns=fields)
-		data1.to_csv('phyloP_%s.txt'%(chrom_id),sep='\t',index=False)
-
-	return vec1
-
-def read_phyloP_single(species_name,chrom_id):
-
-	path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-	file1 = pd.read_csv(filename1,sep='\t')
-	
-	col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1['serial'])
-	num_sample = len(chrom_ori)
-	# chrom_vec = np.unique(chrom_ori)
-	chrom_vec = [chrom_id]
-	n_level, offset, magnitude = 15, 10, 2
-
-	for chrom_id in chrom_vec:
-		filename1 = '%s/phyloP/hg19.phyloP100way.%s.bedGraph'%(path1,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		len1 = stop-start
-		b = np.where(chrom_ori==chrom_id)[0]
-		num_sample1 = len(b)
-		vec1 = np.zeros((num_sample1,n_level+4))
-		print(chrom_id,len(chrom),len(b))
-		cnt = 0
-		pre_b1 = [-1]
-		b1 = pre_b1
-		for i in b:
-			# if cnt==0:
-			# 	b1 = np.where((start>=start_ori[i])&(stop<stop_ori[i]))[0]
-			# else:
-			# 	t1 = b1[-1]+1
-			# 	while start[t1]<start_ori[i]:
-			# 		t1 += 1
-			# 	if start[t1]>=start_ori[i]:
-			# 		id1 = t1
-			# 		while start[t1]<start_ori[i]:
-			# 			t1 += 1
-
-			t1 = pre_b1[-1]+1
-			b1 = np.where((start[t1:]>=start_ori[i])&(stop[t1:]<stop_ori[i]))[0]+t1
-			# b1 = []
-			# while start[t1]<start_ori[i]:
-			# 	t1 += 1
-			# if start[t1]>=start_ori[i]:
-			# 	id1 = t1
-			# 	while stop[t1]<stop_ori[i]:
-			# 		t1 += 1
-			# 	id2 = t1
-			# 	b1 = np.asarray(range(id1,id2))
-			if len(b1)==0:
-				continue
-
-			t_len1, t_score = np.asarray(len1[b1]), np.asarray(score[b1])
-			s1 = 0
-			s2 = np.sum(t_len1)
-			i1 = cnt
-			for j in range(0,n_level):
-				temp1 = (j-offset)*magnitude
-				b2 = np.where((t_score<temp1+magnitude)&(t_score>=temp1))[0]
-				# print(b2)
-				vec1[i1,j] = np.sum(t_len1[b2])*1.0/s2
-				s1 = s1+temp1*vec1[i1,j]
-
-			vec1[i1,n_level:n_level+4] = [s1,np.median(t_score),np.max(t_score),np.min(t_score)]
-			
-			cnt += 1
-			pre_b1 = b1
-			if cnt%1000==0:
-				print(chrom_id,cnt,len(b1),s2,vec1[i1,12:16])
-				# break
-		
-		# dict1 = dict()
-		# dict1['vec'], dict1['index'] = vec1,b
-		# np.save('phyloP_%s'%(chrom_id),dict1,allow_pickle=True)
-		fields = ['index']
-		for j in range(0,n_level):
-			temp1 = (j-offset)*magnitude
-			fields.append('%s-%s'%(temp1,temp1+magnitude))
-		fields.extend(range(0,4))
-		idx = serial_ori[b]
-		data1 = pd.DataFrame(data = np.hstack((idx[:,np.newaxis],vec1)),columns=fields)
-		data1.to_csv('phyloP_%s.txt'%(chrom_id),sep='\t',index=False)
-
-	return vec1
-
-def read_phyloP_pre(file_path):
-
-	# file1 = pd.read_csv(ref_filename,sep='\t')	
-	# # col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	# colnames = list(file1)
-	# col1, col2, col3 = colnames[0], colnames[1], colnames[2]
-	# chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1['serial'])
-	# num_sample = len(chrom_ori)
-	# chrom_vec = np.unique(chrom_ori)
-	chrom_vec = [1,2,3,4,5]
-	# n_level, offset, magnitude = 15, 10, 2
-
-	for chrom_id in chrom_vec:
-		# filename1 = '%s/hg19.phyloP100way.%s.bedGraph'%(file_path,chrom_id)
-		filename1 = '%s/chr%s.phyloP100way.bedGraph'%(file_path,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		print(len(chrom),np.max(score),np.min(score))
-
-	return True
-
-def read_phyloP_1_ori(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,magnitude=2):
-
-	# path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-	file1 = pd.read_csv(ref_filename,header=header,sep='\t')
-	
-	# col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	colnames = list(file1)
-	col1, col2, col3, col4 = colnames[0], colnames[1], colnames[2], colnames[3]
-	chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1[col4])
-	num_sample = len(chrom_ori)
-	# chrom_vec = np.unique(chrom_ori)
-	# chrom_vec = [chrom_id]
-	# n_level, offset, magnitude = 15, 10, 2
-	score_max = (n_level-offset)*magnitude
-	region_len = stop_ori-start_ori
-
-	for chrom_id in chrom_vec:
-		# filename1 = '%s/hg19.phyloP100way.%s.bedGraph'%(file_path,chrom_id)
-		filename1 = '%s/chr%s.phyloP100way.bedGraph'%(file_path,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		len1 = stop-start
-		chrom_id1 = 'chr%s'%(chrom_id)
-		b = np.where(chrom_ori==chrom_id1)[0]
-		num_sample1 = len(b)
-		vec1 = np.zeros((num_sample1,n_level+4))
-		print(chrom_id,len(chrom),len(b))
-		cnt = 0
-		pre_b1 = [-1]
-		b1 = pre_b1
-		pre_stop = 0
-		for i in b:
-			t1 = pre_b1[-1]+1
-			window1 = region_len[i] + start_ori[i] - pre_stop + 10
-			b1 = np.where((start[t1:t1+window1]>=start_ori[i])&(stop[t1:t1+window1]<stop_ori[i]))[0]+t1
-			pre_stop = stop_ori[i]
-			if len(b1)==0:
-				continue
-
-			t_len1, t_score = np.asarray(len1[b1]), np.asarray(score[b1])
-			t_score[t_score>score_max] = score_max-1e-04
-			s1 = 0
-			s2 = np.sum(t_len1)
-			i1 = cnt
-			for j in range(0,n_level):
-				temp1 = (j-offset)*magnitude
-				b2 = np.where((t_score<temp1+magnitude)&(t_score>=temp1))[0]
-				# print(b2)
-				vec1[i1,j] = np.sum(t_len1[b2])*1.0/s2
-				s1 = s1+temp1*vec1[i1,j]
-
-			vec1[i1,n_level:n_level+4] = [s1,np.median(t_score),np.max(t_score),np.min(t_score)]
-			
-			cnt += 1
-			pre_b1 = b1
-			if cnt%1000==0:
-				print(chrom_id,cnt,len(b1),s2,vec1[i1,12:16])
-				# break
-		
-		# dict1 = dict()
-		# dict1['vec'], dict1['index'] = vec1,b
-		# np.save('phyloP_%s'%(chrom_id),dict1,allow_pickle=True)
-		fields = ['index']
-		for j in range(0,n_level):
-			temp1 = (j-offset)*magnitude
-			fields.append('%s-%s'%(temp1,temp1+magnitude))
-		fields.extend(range(0,4))
-		idx = serial_ori[b]
-		data1 = pd.DataFrame(data = np.hstack((idx[:,np.newaxis],vec1)),columns=fields)
-		data1.to_csv('phyloP_%s.txt'%(chrom_id),sep='\t',index=False)
-
-	return vec1
-
 def read_phyloP_1(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,magnitude=2):
 
 	file1 = pd.read_csv(ref_filename,header=header,sep='\t')
@@ -529,9 +235,6 @@ def read_phyloP_1(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,m
 				print(chrom_id,cnt,len(b1),s2,vec1[cnt,-4:])
 				# break
 		
-		# dict1 = dict()
-		# dict1['vec'], dict1['index'] = vec1,b
-		# np.save('phyloP_%s'%(chrom_id),dict1,allow_pickle=True)
 		fields = ['index']
 		for j in range(0,n_level):
 			temp1 = (j-offset)*magnitude
@@ -687,8 +390,6 @@ class Reader(object):
 		
 	def generate_serial(self,filename1,filename2,output_filename,header=None):
 
-		# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
-
 		data1 = pd.read_csv(filename2, header=header, sep='\t')
 		colnames = list(data1)
 		chrom, start, stop = np.asarray(data1[colnames[0]]), np.asarray(data1[colnames[1]]), np.asarray(data1[colnames[2]])
@@ -756,12 +457,10 @@ class Reader(object):
 
 	def run_1(self):
 
-		filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
+		filename1 = './hg38.chrom.sizes'
 
 		celltype_vec = ['H1','HCT116','H9']
-		# celltype_vec = ['H1']
-		# path1 = '/volume01/yy3/seq_data/dl/replication_timing3/data_2'
-		path1 = '/volume01/yy3/seq_data/dl/replication_timing2'
+		path1 = '.'
 		num_ratio = 16
 		header = None
 		for t_celltype in celltype_vec:
@@ -774,31 +473,29 @@ class Reader(object):
 
 	def run_2(self):
 
-		file_path = '/volume01/yy3/seq_data/dl/replication_timing3/phyloP'
+		file_path = './phyloP'
 		read_phyloP_pre(file_path)
 
 
 	def run_3(self,chrom_idvec):
 
-		ref_filename = '/volume01/yy3/seq_data/dl/replication_timing3/hg38_10k_serial.bed'
-		# file1 = pd.read_csv(ref_filename,sep='\t')
+		ref_filename = './hg38_10k_serial.bed'
 		header = None
 		n_level, offset, magnitude = 15, 10, 2	
-		file_path = '/volume01/yy3/seq_data/dl/replication_timing3/phyloP'
+		file_path = './phyloP'
 		read_phyloP_1_ori(ref_filename,header,file_path,chrom_idvec,n_level,offset,magnitude)
 
 	def run_5(self,resolution):
 
-		ref_filename = '/volume01/yy3/seq_data/dl/replication_timing3/hg38_%s_serial.bed'%(resolution)
+		ref_filename = './hg38_%s_serial.bed'%(resolution)
 		header = None
-		filename = '/volume01/yy3/seq_data/dl/replication_timing3/hg38_%s_seq'%(resolution)
+		filename = './hg38_%s_seq'%(resolution)
 		output_filename = 'test_gc_%s.txt'%(resolution)
 		read_gc_1(ref_filename,header,filename,output_filename)
 
 	def load_motif_ori(self,filename1,motif_filename,output_filename):
 
 		mtx1, chrom, start, stop, colnames = read_motif_1(motif_filename)
-
 		serial_vec, start_vec = generate_serial_start(filename1,chrom,start,stop)
 
 		if output_filename!=None:
@@ -830,11 +527,6 @@ class Reader(object):
 
 			data1 = pd.concat([data2,data3], axis=1, join='outer', ignore_index=True, 
 								keys=None, levels=None, names=None, verify_integrity=False, copy=True)
-			# num1 = len(colnames)
-			# for i in range(3,num1):
-			# 	print(colnames[i])
-			# 	data2[colnames[i]] = mtx1[:,i-3]
-
 			data1.to_csv(output_filename,header=True,index=False,sep='\t')
 			print('data1',data1.shape)
 
@@ -1480,8 +1172,7 @@ class RepliSeq(object):
 		print(x_train.shape,x_train1.shape,x_test.shape,x_test1.shape)
 
 		print("feature transform")
-			# filename1 = 'test_chr10_%d_1_5_3.npy'%(type_id2)
-		# prefix = self.filename_load
+		
 		# 1: PCA; 2: SVD for motif
 		filename1 = 'chr%s_%d_%d_%d.npy'%(test_chromvec[0],type_id,feature_dim[0],feature_dim[1])
 
@@ -1571,24 +1262,15 @@ class RepliSeq(object):
 				temp1 = np.hstack((f_id1,f_id2,f_id3))
 			else:
 				pass
-				
-			# if feature_type>-1:
-			# 	x_train1_ori, x_test_ori = x_train1_ori[:,temp1], x_test_ori[:,temp1]
 
 			if feature_type>-1:
 				x_train1_ori = x_train1_ori[:,temp1]
 
 			self.x_train1_ori = x_train1_ori
-			# self.y_signal_train1 = y_signal_train1
-			# self.x_test_ori = x_test_ori
-			# self.y_signal_test = y_signal_test
 			self.feature_dim_kmer = feature_dim_kmer
 			self.train_sel_list = train_sel_list
 			# self.test_sel_list = test_sel_list
 			feature_dim_kmer_1 = np.sum(feature_dim_kmer)
-
-			# prefix = self.filename_load
-			# save_filename_ori = '%s_%s_ori1.npy'%(prefix,self.cell_type)
 
 			filename1 = '%s_chr%s-chr%s_chr%s-chr%s'%(self.cell_type, t_chrom, t_chrom, self.test_chromvec[0], self.test_chromvec[-1])
 			save_filename_ori = '%s_ori1.npy'%(filename1)
@@ -3294,19 +2976,7 @@ class RepliSeq(object):
 			else:
 				print('get_model2a1_sequential')
 				model = get_model2a1_sequential(context_size,config)	# context without attention and prediction per position
-		# else:
-		# 	if attention==1:
-		# 		print('get_model2a1_attention_1')
-		# 		model = get_model2a1_attention_1(context_size,config)	# context with attention from intermedicate layer
-		# 	elif attention==2:
-		# 		print('get_model2a1_attention_2')
-		# 		model = get_model2a1_attention_2(context_size,config)	# context with attention from input
-		# 	else:
-		# 		print('get_model2a_sequential')
-		# 		model = get_model2a_sequential(context_size,config)		# context without attention
-			
-		# model.fit(X_train,y_train,epochs = 100,batch_size = BATCH_SIZE,validation_data = [X_test,y_test],class_weight=build_classweight(y_train),callbacks=[earlystop,checkpointer,roc_cb])
-		# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_test,y_test],callbacks=[earlystop,checkpointer])
+		
 		model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
 		# model.load_weights(MODEL_PATH)
 
@@ -3329,14 +2999,6 @@ class RepliSeq(object):
 		# y_predicted_train = read_predict(y_predicted_train, vec_train_local, [], flanking1)
 
 		if self.predict_context==1:
-			# y_predicted_valid = read_predict(y_predicted_valid, vec_valid_local, [], flanking1)
-			# y_predicted_test_1 = read_predict(y_predicted_test_1, vec_test1_local, [], flanking1)
-			# y_predicted_test = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-
-			# y_predicted_train = read_predict_3(y_predicted_train, vec_train_local, [], flanking1)
-			# y_predicted_valid = read_predict_3(y_predicted_valid, vec_valid_local, [], flanking1)
-			# # y_predicted_test_1 = read_predict(y_predicted_test_1, vec_test1_local, [], flanking1)
-			# y_predicted_test = read_predict_3(y_predicted_test, vec_test_local, [], flanking1)
 
 			y_predicted_train = y_predicted_train[:,id1]
 			y_predicted_valid = y_predicted_valid[:,id1]
