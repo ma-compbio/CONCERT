@@ -128,6 +128,181 @@ def signal_normalize_query(query_point, scale_ori, scale):
 	scaled_signal = s1+(query_point-s_min)*1.0/(s_max-s_min)*(s2-s1)
 
 	return scaled_signal
+# input is probability
+class Sample_Concrete(Layer):
+	"""
+	Layer for sample Concrete / Gumbel-Softmax variables. 
+
+	"""
+	def __init__(self, tau0, k, n_steps, **kwargs): 
+	# def __init__(self, tau0, k, n_steps): 
+		self.tau0 = tau0
+		self.k = k
+		self.n_steps = n_steps
+		super(Sample_Concrete, self).__init__(**kwargs)
+
+	def call(self, logits):
+		logits_ = K.permute_dimensions(logits, (0,2,1))
+		#[batchsize, 1, MAX_SENTS]
+
+		unif_shape = tf.shape(logits_)[0]
+		uniform = tf.random.uniform(shape =(unif_shape, self.k, self.n_steps), 
+			minval = np.finfo(tf.float32.as_numpy_dtype).tiny,
+			maxval = 1.0)
+
+		gumbel = - K.log(-K.log(uniform))
+		# noisy_logits = (gumbel + logits_)/self.tau0
+		# logits_ = K.log(logits_) # the input is probability
+		noisy_logits = (gumbel + logits_)/self.tau0
+		samples = K.softmax(noisy_logits)
+		samples = K.max(samples, axis = 1)
+		samples = K.expand_dims(samples, -1)
+
+		discrete_logits = K.one_hot(K.argmax(logits_,axis=-1), num_classes = self.n_steps)
+		discrete_logits = K.permute_dimensions(discrete_logits,(0,2,1))
+
+		# return K.in_train_phase(samples, discrete_logits)
+		return samples
+
+	def compute_output_shape(self, input_shape):
+		return input_shape
+		
+# input is probability
+class Sample_Concrete1(Layer):
+	"""
+	Layer for sample Concrete / Gumbel-Softmax variables. 
+
+	"""
+	def __init__(self, tau0, k, n_steps, type_id, **kwargs): 
+	# def __init__(self, tau0, k, n_steps): 
+		self.tau0 = tau0
+		self.k = k
+		self.n_steps = n_steps
+		self.type_id = type_id
+		super(Sample_Concrete1, self).__init__(**kwargs)
+
+	def call(self, logits):
+		logits_ = K.permute_dimensions(logits, (0,2,1))
+		#[batchsize, 1, MAX_SENTS]
+
+		unif_shape = tf.shape(logits_)[0]
+		uniform = tf.random.uniform(shape =(unif_shape, self.k, self.n_steps), 
+			minval = np.finfo(tf.float32.as_numpy_dtype).tiny,
+			maxval = 1.0)
+
+		gumbel = - K.log(-K.log(uniform))
+		eps = tf.compat.v1.keras.backend.constant(1e-12)
+		# print('eps:', eps)
+		# noisy_logits = (gumbel + logits_)/self.tau0
+		# logits_ = K.log(logits_) # the input is probability
+		if self.type_id==2:
+			logits_ = -K.log(-K.log(logits_ + eps))	# the input is probability
+		elif self.type_id==3:
+			logits_ = K.log(logits_ + eps) # the input is probability
+		# elif self.type_id==5:
+		# 	logits_ = -logits_
+		elif self.type_id==5:
+			eps1 = tf.compat.v1.keras.backend.constant(1+1e-12)
+			# x = Lambda(lambda x: x * 2)(layer)
+			logits_ = K.log(logits_ + eps1)
+		else:
+			pass
+		noisy_logits = (gumbel + logits_)/self.tau0
+		samples = K.softmax(noisy_logits)
+		samples = K.max(samples, axis = 1)
+		samples = K.expand_dims(samples, -1)
+
+		discrete_logits = K.one_hot(K.argmax(logits_,axis=-1), num_classes = self.n_steps)
+		discrete_logits = K.permute_dimensions(discrete_logits,(0,2,1))
+
+		# return K.in_train_phase(samples, discrete_logits)
+		return samples
+
+	def compute_output_shape(self, input_shape):
+		return input_shape
+
+def get_model2a1_attention_1_2_2_sample(input_shape,config):
+
+	feature_dim, output_dim, fc1_output_dim = config['feature_dim'], config['output_dim'], config['fc1_output_dim']
+	n_steps = config['context_size']
+	lr = config['lr']
+	activation = config['activation']
+	activation_self = config['activation_self']
+	activation3 = config['activation3']
+	typeid_sample = config['typeid_sample']
+	if not('loss_function' in config):
+		loss_function = 'mean_squared_error'
+	else:
+		loss_function = config['loss_function']
+
+	input1 = Input(shape = (n_steps,feature_dim))
+
+	number = 1
+	# if 'typeid2' in config:
+	# 	typeid = config['typeid2']
+	# else:
+	# 	typeid = 2
+	typeid = 2
+	logits_T = construct_gumbel_selector1(input1,config,number,typeid)
+
+	# k = 10
+	if not('sample_attention' in config) or config['sample_attention']==1:
+		tau = 0.5
+		k = 5
+		print('sample_attention',tau,k,typeid,activation3,typeid_sample)
+		if 'tau' in config:
+			tau = config['tau']
+		if 'n_select' in config:
+			k = config['n_select']
+		if typeid<2:
+			attention1 = Sample_Concrete(tau,k,n_steps)(logits_T)
+		else:
+			if activation3=='linear':
+				typeid_sample = 1
+			elif activation3=='tanh':
+				typeid_sample = 5
+			elif activation3=='sigmoid':
+				typeid_sample = 3
+			else:
+				pass
+			attention1 = Sample_Concrete1(tau,k,n_steps,typeid_sample)(logits_T) # output shape: (batch_size, n_steps, 1)
+	else:
+		attention1 = logits_T
+
+	# encode the input 2
+	units_2 = config['units2']
+	if units_2>0:
+		dim2 = units_2
+		dense_layer_output1 = TimeDistributed(Dense(units_2,name='dense_2'))(input1)
+	else:
+		dim2 = feature_dim
+		dense_layer_output1 = input1
+
+	if config['select2']==1:
+		units1 = config['units1']
+		config['units1'] = 0
+		typeid = 0
+		number = 2
+		dense_layer_output1 = construct_gumbel_selector1(dense_layer_output1,config,number,typeid)
+		config['units1'] = units1
+
+	layer_1 = Multiply()([dense_layer_output1, attention1])
+
+	output = get_model2a1_basic1(layer_1,config)
+	# dense_layer_output = Lambda(lambda x: K.sum(x,axis=1))(layer_1)
+
+	# output = Activation("softmax")(output)
+	model = Model(input = input1, output = output)
+	# adam = Adam(lr = lr)
+	adam = Adam(lr = lr, clipnorm=CLIPNORM1)
+	# model.compile(adam,loss = 'binary_crossentropy',metrics=['accuracy'])
+	# model.compile(adam,loss = 'kullback_leibler_divergence',metrics=['accuracy'])
+	# model.compile(adam,loss = 'mean_absolute_percentage_error')
+	model.compile(adam,loss = loss_function)
+
+	model.summary()
+
+	return model
 
 def balance_data(X,t,y):
 	pos_index = np.where(y == 1)[0]
