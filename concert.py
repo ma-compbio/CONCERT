@@ -3830,4 +3830,4 @@ if __name__ == '__main__':
 		opts.n_epochs,opts.species,opts.featureid,opts.typeid,opts.cell,
 		opts.method,opts.ftype,opts.ftrans,opts.tlist,opts.flanking,opts.normalize,
 		opts.unit,opts.b1,opts.lr,opts.step,opts.activation,opts.delta,opts.attention,opts.fc1,opts.fc2)
-
+	
