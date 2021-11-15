@@ -29,7 +29,7 @@ fc2_output_dim = 0
 activation='relu'
 delta = 0.001
 
-celltype_vec = ['GM12878','IMR-90','K562','H1-hESC','H9','HCT116','HEK293','HFFc6','RPE-hTERT','U2OS']
+celltype_vec = ['GM12878','IMR-90','K562','H1-hESC','H9','HCT116','HEK293','RPE-hTERT','U2OS']
 num1 = len(celltype_vec)
 
 for i in range(0,num1):
@@ -40,3 +40,4 @@ for i in range(0,num1):
 	training2_2.run(chromosome,run_id,generate,chromvec,test_chromvec,n_epochs,species_id,
 		 featureid,type_id,cell,method,ftype,ftrans,tlist,flanking,normalize,unit,batch_size,
 		 lr,step,activation,delta,attention,fc1_output_dim,fc2_output_dim,feature_dim_motif)
+	
