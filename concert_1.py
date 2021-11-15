@@ -16,6 +16,7 @@ from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping,ModelCheckpoint
 from keras.constraints import unitnorm
 from keras_layer_normalization import LayerNormalization
+from keras.models import Sequential, Model
 import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
@@ -29,34 +30,20 @@ from sklearn.metrics import mean_squared_error, explained_variance_score, mean_a
 from sklearn.ensemble import RandomForestRegressor
 import xgboost
 import pickle
-# from utility1_1 import mapping_Idx
 
 import os.path
 from optparse import OptionParser
 import genUnlabelData_1,genLabelData_1,genVecs_1
-from sklearn.svm import SVR
 
+from sklearn.svm import SVR
 import sklearn as sk
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from sklearn.manifold import LocallyLinearEmbedding
-from sklearn.decomposition import PCA
-from sklearn.decomposition import IncrementalPCA
-from sklearn.decomposition import KernelPCA
-from sklearn.decomposition import SparsePCA
-from sklearn.manifold import MDS
-from sklearn.manifold import Isomap
-from sklearn.manifold import TSNE
-from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import PCA, IncrementalPCA, KernelPCA, SparsePCA, TruncatedSVD, FastICA, MiniBatchDictionaryLearning
+from sklearn.manifold import LocallyLinearEmbedding, MDS, Isomap, TSNE
 from sklearn.random_projection import GaussianRandomProjection
-from sklearn.decomposition import FastICA
-from sklearn.decomposition import MiniBatchDictionaryLearning
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.preprocessing import StandardScaler
-import keras
-from keras.models import Sequential, Model
-from keras.layers import Dense
-from keras.optimizers import Adam
 import time
 
 from utility_1 import sample_select2, sample_select2a, sample_select2a_3
