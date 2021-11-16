@@ -9,25 +9,18 @@ from collections import deque
 import pandas as pd
 import numpy as np
 import processSeq
-
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')
-
 import numpy as np
-# from scipy.misc import logsumexp
-from sklearn.base import BaseEstimator, _pprint
-from sklearn.utils import check_array, check_random_state
-from sklearn.utils.validation import check_is_fitted
+from scipy import stats
 from scipy.stats import multivariate_normal
 from scipy.stats import kurtosis, skew
 from scipy.stats import pearsonr, spearmanr
-from scipy import stats
 
 import keras
 keras.backend.image_data_format()
 from keras import backend as K
 from keras import regularizers
-
 from keras.layers import Input, Dense, Reshape, Lambda, Conv1D, Flatten, MaxPooling1D, UpSampling1D, GlobalMaxPooling1D
 from keras.layers import LSTM, Bidirectional
 from keras.layers import BatchNormalization, Dropout, Concatenate, Embedding
@@ -40,6 +33,9 @@ from keras_layer_normalization import LayerNormalization
 import tensorflow as tf
 tf.keras.backend.set_floatx('float32')
 
+from sklearn.base import BaseEstimator, _pprint
+from sklearn.utils import check_array, check_random_state
+from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import average_precision_score,precision_score,recall_score,f1_score
 from sklearn.metrics import roc_curve, precision_recall_curve
