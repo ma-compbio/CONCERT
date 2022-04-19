@@ -269,7 +269,6 @@ def test_1(base1,vec1,vec3,vec3_1,feature_dim_motif,celltype_vec,loss_function_t
 
 			celltype_id = cell
 			filename1 = './%s_%d.label.sorted.bed'%(celltype_id,run_id)
-
 			filename1 = 'test_data_pred1.1.txt'
 			filename_list1 = [filename1]
 			list1 = ['tol1']
