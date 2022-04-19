@@ -2416,7 +2416,7 @@ def compare_rmsk_sub2_pre1(run_id,filename1,filename2,filename2_1,thresh=-10,int
 		print(np.sum(cnt1),cnt1)
 
 	data_2 = pd.DataFrame(columns=label_vec,data=vec2)
-	file_path = './mnt/yy3/data6_9/vbak1_1'
+	file_path = 'data1'
 	if output_filename=='':
 		output_filename = '%s/table2.%d.%s.thresh%s.txt'%(file_path,run_id,str(interval),str(thresh))
 
@@ -2496,7 +2496,7 @@ def compare_rmsk_sub2_ori(run_id,filename1,filename2,output_filename1='',output_
 	repClass = np.asarray(data1['repClass'])
 
 	num1 = len(repFamily)
-	file_path = './mnt/yy3/data6_9/vbak1'
+	file_path = 'data1'
 	list1, list2 = [], []
 	list3_label, list3_1, list3_2, list3_3 = [], [], [], []
 	for i in range(num1):
@@ -2543,7 +2543,7 @@ def compare_rmsk_sub2_basic(filename1,filename2,output_filename1=''):
 	repClass = np.asarray(data1['repClass'])
 
 	num1 = len(repFamily)
-	file_path = './mnt/yy3/data6_9/vbak1'
+	file_path = 'data1'
 	list1, list2 = [], []
 	list3_label, list3_1, list3_2, list3_3 = [], [], [], []
 
@@ -3253,7 +3253,7 @@ def compare1(run_idList,filename_list=[],output_filename='',thresh=0.05):
 	vec1 = []
 	sel_num = 2
 	sel_num1 = 2*sel_num
-	file_path = 'mnt/yy3'
+	file_path = 'data1'
 	method1 = 52
 	feature_id1 = -1
 	annot1 = 'init1'
@@ -3442,8 +3442,6 @@ def load_data_1(file_path,label_ID,id_vec):
 def prep_data_sequence_kmer(filename1,kmer_size,output_filename=''):
 
 	# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1'
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1_1.txt'
 	kmer_dict1 = kmer_dict(kmer_size)
 	f_list, f_mtx, serial = load_seq_2(filename1, kmer_size, kmer_dict1, sel_idx=[])
 
@@ -3453,8 +3451,6 @@ def prep_data_sequence_kmer(filename1,kmer_size,output_filename=''):
 def prep_data_sequence_kmer_chrom_ori(filename1,filename2,kmer_size,chrom_vec=[],filename_prefix='',save_mode=1,pos={}):
 
 	# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1'
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1_1.txt'
 	kmer_dict1 = kmer_dict(kmer_size)
 	file1 = pd.read_csv(filename1,sep='\t')
 	seq1 = np.asarray(file1['seq'])
@@ -3565,8 +3561,6 @@ def prep_data_sequence_kmer_chrom_ori(filename1,filename2,kmer_size,chrom_vec=[]
 def prep_data_sequence_kmer_chrom(filename1,filename2,kmer_size,chrom_vec=[],filename_prefix='',save_mode=1,region_size=1):
 
 	# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1'
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1_1.txt'
 	kmer_dict1 = kmer_dict(kmer_size)
 	file1 = pd.read_csv(filename1,sep='\t')
 	seq1 = np.asarray(file1['seq'])
@@ -3690,8 +3684,6 @@ def prep_data_sequence_kmer_chrom(filename1,filename2,kmer_size,chrom_vec=[],fil
 def prep_data_sequence_kmer_chrom_1(filename1,filename2,kmer_size,chrom_vec=[],filename_prefix='',save_mode=1):
 
 	# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1'
-	# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1_1.txt'
 	kmer_dict1 = kmer_dict(kmer_size)
 	file1 = pd.read_csv(filename1,sep='\t')
 	seq1 = np.asarray(file1['seq'])
@@ -3857,7 +3849,7 @@ def run_1_merge(run_idlist,config):
 	if 'file_path' in config:
 		file_path = config['file_path']
 	else:
-		file_path = './mnt/yy3'
+		file_path = 'data1'
 
 	type_id, type_id1 = config['type_id_1'], config['type_id1_1']
 	feature_id1 = config['feature_id1']
