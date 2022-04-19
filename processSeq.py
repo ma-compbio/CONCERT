@@ -22,7 +22,6 @@ def countCG_skew(strs):
 	return float((num1-num2))/(num1+num2+eps)
 
 def one_hot_encoding(seq, seq_len):
-	# seq_len = len(seq)
 	vec1 = np.zeros((4,seq_len))
 	cnt = 0
 
@@ -42,7 +41,6 @@ def one_hot_encoding(seq, seq_len):
 	return np.int64(vec1)
 
 def index_encoding(seq, seq_len, seq_dict):
-	# seq_len = len(seq)
 	vec1 = np.zeros(seq_len)
 
 	for i in range(0,seq_len):
