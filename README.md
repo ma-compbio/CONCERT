@@ -1,5 +1,5 @@
 # CONCERT
-Context-of-Sequences model for predicting DNA Replication Timing signals and identifying sequence elemetns that modulate DNA replication timing
+Context-of-sequences model for predicting DNA replication timing signals and identifying sequence elements that modulate DNA replication timing
 
 CONCERT is an interpretable context-attentive model to simultaneously identify predictive genomic loci that are potentially important for modulating DNA replication timing (RT) and predict the genome-wide RT profiles from DNA sequences features.
 
