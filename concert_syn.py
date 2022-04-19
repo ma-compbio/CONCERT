@@ -298,7 +298,6 @@ class RepliSeq(_Base1):
 		print('test_sel_list',len(self.train_sel_list[test_id]))
 		vec2.update({'train':self.train_sel_list[train_id],'valid':self.train_sel_list[valid_id],'test':self.train_sel_list[test_id]})
 		filename1 = '%s/feature_transform_%d.npy'%(self.path,self.run_id)
-		
 		# np.save(filename1,vec2,allow_pickle=True)
 
 		# output score vector
