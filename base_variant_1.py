@@ -48,7 +48,6 @@ from sklearn.metrics import mean_squared_error, explained_variance_score, mean_a
 from sklearn.ensemble import RandomForestRegressor
 import xgboost
 import pickle
-# from utility_1 import mapping_Idx
 
 import os.path
 from optparse import OptionParser
@@ -1474,7 +1473,6 @@ class _Base1(BaseEstimator):
 		self._check()
 
 		X = check_array(X)
-		# XXX we can unroll forward pass for speed and memory efficiency.
 		logprob = 0
 		for i, j in iter_from_X_lengths(X, lengths):
 			framelogprob = self._compute_log_likelihood(X[i:j])
@@ -1508,10 +1506,6 @@ class _Base1(BaseEstimator):
 		return self
 
 	def load_ref_serial(self, ref_filename, header=None):
-
-		# path2 = '/volume01/yy3/seq_data/dl/replication_timing'
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
-		# filename2a = 'test_seq_%s.1.txt'%(species_name)
 		if header==None:
 			file1 = pd.read_csv(ref_filename,header=header,sep='\t')
 		else:
@@ -1526,11 +1520,6 @@ class _Base1(BaseEstimator):
 
 	# load local serial and signal
 	def load_local_serial(self, filename1, header=None, region_list=[], type_id2=1, signal_normalize=1,region_list_1=[]):
-
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path2,species_name)
-		# filename2a = 'test_seq_%s.1.txt'%(species_name)
-
 		if header==None:
 			file2 = pd.read_csv(filename1,header=header,sep='\t')
 		else:
@@ -1721,11 +1710,6 @@ class _Base1(BaseEstimator):
 				if (self.feature_dim_motif==0) or (flag_1==True):
 					x_train1_trans = x_train1_trans_ori[:,0:-motif_dim_ori]
 				else:
-					# d1 = np.min((dim1-motif_dim_ori+feature_dim2,d1))
-					# d2 = dim1-motif_dim_ori
-					# sel_id1 = list(range(21))+list(range(21,21+feature_dim1))
-					# x_train1_trans_1 = x_train1_trans[:,sel_id1]
-					# x_train1_trans_2 = x_train1_trans[:,d2:d1]
 					x_train1_trans_1 = x_train1_trans_ori[:,0:dim1-motif_dim_ori]
 					x_train1_trans_2 = x_train1_trans_ori[:,dim1-motif_dim_ori:]
 
@@ -1777,22 +1761,6 @@ class _Base1(BaseEstimator):
 			if (self.feature_dim_motif==1) and (flag_1==False):
 				x_train1_trans = np.hstack((x_train1_trans,x_train1_trans_2[id1,0:feature_dim2]))
 
-			# id1 = mapping_Idx(self.serial_ori,serial2)
-			# b1 = (id1>=0)
-			# id1 = id1[b1]
-			# serial2, feature_mtx = serial2[b1], feature_mtx[b1]
-
-			# chrom1 = self.chrom_ori[id1]
-			# chrom2 = np.zeros(len(serial2),dtype=np.int32)
-			# chrom_vec = np.unique(chrom1)
-			# for chrom_id in chrom_vec:
-			# 	b2 = np.where(chrom1==chrom_id)[0]
-			# 	chrom_id1 = int(chrom_id[3:])
-			# 	chrom2[b2] = chrom_id1
-
-			# x_train1_trans = feature_mtx[:,0:feature_dim1]
-			# trans_sel_list_ori = np.vstack((chrom2,serial2)).T
-
 		else:
 			print('data not found!')
 
@@ -1813,13 +1781,6 @@ class _Base1(BaseEstimator):
 		# config = {'n_epochs':n_epochs,'feature_dim':feature_dim,'output_dim':output_dim,'fc1_output_dim':fc1_output_dim}
 		tol = self.tol
 		L = flanking
-		# path1 = '/mnt/yy3'
-
-		# np.save(filename1)
-		print("feature transform")
-		# filename1 = '%s/%s_%d_%d_%d.npy'%(path1,file_prefix,type_id2,feature_dim_transform[0],feature_dim_transform[1])
-		
-		print(self.species_id)
 
 		t_featuredim1, t_featuredim2 = feature_dim_transform[0], feature_dim_transform[1]
 
@@ -2075,12 +2036,6 @@ class _Base1(BaseEstimator):
 				self.x[i], self.y[i] = x, y
 				print(self.x[i].shape, self.y[i].shape)
 
-		# x_train, y_train, vec_train, vec_train_local = sample_select2a1(x_train1_trans[idx_train], y_signal_train[idx_train], 
-		# 																train1_sel_list, self.seq_list_train, self.tol, self.flanking)
-
-		# x_valid, y_valid, vec_valid, vec_valid_local = sample_select2a1(x_train1_trans[idx_valid], y_signal_train[idx_valid], 
-		# 																val_sel_list, self.seq_list_valid, self.tol, self.flanking)
-
 		return True
 
 	# prepare data from predefined features
@@ -2110,8 +2065,7 @@ class _Base1(BaseEstimator):
 		# filename1 = 'mm10_%d_%s_encoded1.h5'%(self.config['cell_type1'],chrom_id1)
 		self.species_id = 'mm10'
 		self.cell_type1 = self.config['cell_type1']
-		file_path1 = '/work/magroup/yy3/data1/replication_timing3/mouse'
-		# filename1 = '%s/mm10_5k_seq_genome%d_1.txt'%(file_path1,self.config['cell_type1'])
+		file_path1 = 'data1'
 
 		chrom_id1 = 'chr1'
 		filename1 = '%s_%d_%s_encoded1.h5'%(self.species_id,self.cell_type1,chrom_id1)
@@ -2149,48 +2103,6 @@ class _Base1(BaseEstimator):
 		list1, serial_vec = np.asarray(list1), np.asarray(serial_vec)
 		serial_vec = np.hstack((list1[:,np.newaxis],serial_vec))
 		f_mtx = np.asarray(list2)
-
-		# data_1 = pd.read_csv(filename1,sep='\t')
-		# colnames = list(data_1)
-		# local_serial = np.asarray(data_1['serial'])
-		# local_seq = np.asarray(data_1['seq'])	
-		# print('local_seq', local_seq.shape)
-
-		# serial_vec = local_serial
-		# f_mtx = local_seq
-
-		# filename2 = '%s/mm10_5k_serial.bed'%(file_path1)
-		# file2 = pd.read_csv(filename2,header=None,sep='\t')
-		# ref_chrom, ref_start, ref_stop, ref_serial = np.asarray(file2[0]), np.asarray(file2[1]), np.asarray(file2[2]), np.asarray(file2[3])
-
-		# # assert list(local_serial==list(ref_serial))
-
-		# id_vec1 = []
-		# for chrom_id in chrom_vec:
-		# 	# if chrom_id<22:
-		# 	# 	continue
-		# 	# chrom_id1 = 'chr%s'%(chrom_id)
-		# 	id1 = np.where(ref_chrom=='chr%d'%(chrom_id))[0]
-		# 	id_vec1.extend(id1)
-		# 	print(chrom_id,len(id1))
-
-		# id_vec1 = np.asarray(id_vec1)
-		# ref_chrom_1, ref_serial_1 = ref_chrom[id_vec1], ref_serial[id_vec1]
-		# print('ref chrom local', len(ref_chrom_1), len(ref_serial_1))
-
-		# id1 = utility_1.mapping_Idx(ref_serial_1,local_serial)
-		# id2 = np.where(id1>=0)[0]
-		# id1 = id1[id2]
-		# # assert len(id2)==len(id1)
-
-		# chrom1 = ref_chrom_1[id1]
-		# local_chrom = [int(chrom1[3:]) for chrom1 in ref_chrom_1]
-		# local_chrom = np.asarray(local_chrom)
-		# local_serial, local_seq = local_serial[id2], local_seq[id2]
-
-		# serial_vec = np.column_stack((local_chrom,local_serial))
-		# f_mtx = np.asarray(local_seq)
-
 		return serial_vec, f_mtx
 
 	# find serial and feature vectors
