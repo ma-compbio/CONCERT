@@ -13,90 +13,37 @@ import processSeq
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')
 
-import numpy as np
-from sklearn.base import BaseEstimator, _pprint
-from sklearn.utils import check_array, check_random_state
-from sklearn.utils.validation import check_is_fitted
-from scipy.stats import multivariate_normal
-
+import tensorflow as tf
 import keras
 keras.backend.image_data_format()
 from keras import backend as K
 from keras import regularizers
-
-from keras.layers import Input, Dense, Reshape, Lambda, Conv1D, Flatten, MaxPooling1D, UpSampling1D, GlobalMaxPooling1D
-from keras.layers import LSTM, Bidirectional
-from keras.layers import BatchNormalization, Dropout, Concatenate, Embedding
-from keras.layers import Activation, Dot, dot
-from keras.models import Model, clone_model
-from keras.optimizers import Adam
+from keras.models import Model
 from keras.callbacks import EarlyStopping,ModelCheckpoint
-from keras.constraints import unitnorm
-from keras_layer_normalization import LayerNormalization
-import tensorflow as tf
 
+import sklearn as sk
+from sklearn.base import BaseEstimator, _pprint
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import average_precision_score,precision_score,recall_score,f1_score
-from sklearn.metrics import roc_auc_score,accuracy_score,matthews_corrcoef
-from scipy.stats import pearsonr
-from scipy import stats
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import mean_squared_error, explained_variance_score, mean_absolute_error, median_absolute_error, r2_score
-from sklearn.ensemble import RandomForestRegressor
+from scipy import stats
 import xgboost
 import pickle
+
+import time
+from timeit import default_timer as timer
 
 import os.path
 from optparse import OptionParser
 
-import sklearn as sk
-from sklearn.svm import SVR
-from sklearn.manifold import LocallyLinearEmbedding
-from sklearn.decomposition import PCA, IncrementalPCA, KernelPCA, SparsePCA, TruncatedSVD
-from sklearn.manifold import MDS, Isomap, TSNE
-from sklearn.random_projection import GaussianRandomProjection
-from sklearn.decomposition import FastICA, MiniBatchDictionaryLearning
-from sklearn.random_projection import SparseRandomProjection
-from sklearn.preprocessing import StandardScaler
-import keras
-from keras.models import Sequential, Model
-from keras.layers import Dense
-from keras.optimizers import Adam
-import time
-from timeit import default_timer as timer
-
-from utility_1 import sample_select2, sample_select2a, sample_select2a_3
-from utility_1 import dimension_reduction1, feature_transform1, get_model2a1, get_model2a_sequential, get_model2a1_sequential, get_model2a1_attention_sequential
-from utility_1 import get_model2a_1, get_model2a_2
-from utility_1 import get_model2a1_attention1_sequential, get_model2a1_attention2_sequential
-from utility_1 import get_model2a1_attention1_2_sequential, get_model2a1_attention2_2_sequential
-from utility_1 import get_model2a_attention1_sequential, get_model2a_attention2_sequential, get_model2a2_attention
-from utility_1 import get_model2a1_attention_1_1, get_model2a1_attention_1_2, get_model2a1_attention_1_3
-from utility_1 import get_model2a1_attention, get_model2a1_sequential
-from utility_1 import get_model2a1_attention_1, get_model2a1_attention_2, get_model2a_sequential
-from utility_1 import search_region_include, search_region, aver_overlap_value
-from utility_1 import get_model2a1_attention_1_1, get_model2a1_attention_1_2, get_model2a1_attention_1_3
-from utility_1 import get_model2a1_attention_1_2_select
-from utility_1 import get_model2a1_attention1, get_model2a1_attention_1_2_2
-from utility_1 import get_model2a1_attention, get_model2a1_sequential
-from utility_1 import get_model2a1_attention_1, get_model2a1_attention_2, get_model2a_sequential
-from utility_1 import read_predict, read_predict_weighted
-from utility_1 import sample_select2a_pre
-from utility_1 import search_region_include, search_region, aver_overlap_value
-from utility_1 import Sample_Concrete1
-from processSeq import load_seq_1, kmer_dict, load_signal_1, load_seq_2, load_seq_2_kmer, load_seq_altfeature, load_seq_altfeature_1
+import utility_1
+from utility_1 import mapping_Idx, sample_select2a, read_predict, read_predict_weighted
 import base_variant_1 as base_variant
 from base_variant_1 import _Base1
 from base_variant_1 import generate_sequences, sample_select2a1, score_2a
-from scipy.stats import multivariate_normal
 import h5py
-import json
-import utility_1
-from utility_1 import mapping_Idx
-
 
 class ConvergenceMonitor(object):
-	"""Monitors and reports convergence to :data:`sys.stderr`.
+	"""Monitors and reports convergence
 	"""
 	_template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
@@ -114,7 +61,7 @@ class ConvergenceMonitor(object):
 			class_name, _pprint(params, offset=len(class_name)))
 
 	def report(self, logprob):
-		"""Reports convergence to :data:`sys.stderr`.
+		"""Reports convergence
 		"""
 		if self.verbose:
 			delta = logprob - self.history[-1] if self.history else np.nan
@@ -213,7 +160,6 @@ class RepliSeq(_Base1):
 			# output_filename = '%s/feature_transform_%d_%d.txt'%(self.path,self.run_id,self.method)
 			output_filename = '%s/feature_transform_%d_%d.1.txt'%(self.path,self.run_id,self.method)
 		# output_filename = '%s/feature_transform_%d.txt'%(self.path,self.run_id)
-		temp1 = [22,32,52,51,55]
 
 		if self.est_attention_type1==1:
 			data1 = self.test_result_3(filename1,output_filename,vec2)
@@ -298,6 +244,7 @@ class RepliSeq(_Base1):
 		print('test_sel_list',len(self.train_sel_list[test_id]))
 		vec2.update({'train':self.train_sel_list[train_id],'valid':self.train_sel_list[valid_id],'test':self.train_sel_list[test_id]})
 		filename1 = '%s/feature_transform_%d.npy'%(self.path,self.run_id)
+		
 		# np.save(filename1,vec2,allow_pickle=True)
 
 		# output score vector
@@ -675,7 +622,7 @@ class RepliSeq(_Base1):
 
 			train_vec1, valid_vec1, test_vec1 = train_vec['train'], train_vec['valid'], train_vec['test']
 
-			model, vec2 = self.kmer_compare_weighted3_3(train_vec1, valid_vec1, test_vec1, id_test, est_attention=est_attention)
+			model, vec2 = self.xxxxxkmer_compare_weighted3_3(train_vec1, valid_vec1, test_vec1, id_test, est_attention=est_attention)
 			self.model_vec[i] = model
 
 			model_path2 = '%s/model_%d_%d_test%d.h5'%(self.path,self.run_id,type_id2,i)
@@ -1073,19 +1020,19 @@ class RepliSeq(_Base1):
 		return vec1,dict1
 
 	# pretrain
-	def pretrain(self,x_train,x_valid):
+	# def pretrain(self,x_train,x_valid):
 
-		context_size = x_train.shape[1]
-		config = self.config
-		config['feature_dim'] = x_train.shape[-1]
-		BATCH_SIZE = config['batch_size']
-		n_epochs = config['n_epochs']
-		config['context_size'] = context_size
-		MODEL_PATH = self.model_path
+	# 	context_size = x_train.shape[1]
+	# 	config = self.config
+	# 	config['feature_dim'] = x_train.shape[-1]
+	# 	BATCH_SIZE = config['batch_size']
+	# 	n_epochs = config['n_epochs']
+	# 	config['context_size'] = context_size
+	# 	MODEL_PATH = self.model_path
 
-		attention = self.attention
-		print(self.predict_context, self.attention)
-		model = self.get_model_pre(config,context_size)
+	# 	attention = self.attention
+	# 	print(self.predict_context, self.attention)
+	# 	model = self.get_model_pre(config,context_size)
 
 	def training_1_1(self,x_train,x_valid,y_train,y_valid,model_path1=""):
 		
@@ -1656,7 +1603,7 @@ def run_initialize_1(file_path,species_id,resolution,run_id,
 	print(ref_filename)
 
 	if species_id == 'hg38':
-		filename1 = '%s/data_2/%s.smooth.sorted.bed'%(file_path,cell)
+		filename1 = '%s/%s.smooth.sorted.bed'%(file_path,cell)
 	else:
 		filename1 = ref_filename
 	
@@ -1682,76 +1629,77 @@ def run_initialize_1(file_path,species_id,resolution,run_id,
 
 	return t_repli_seq
 
-class RepliSeqHMM(_Base1):
+# class RepliSeqHMM(_Base1):
 
-	def __init__(self, chromosome,run_id,generate,chromvec,test_chromvec,n_epochs,species_id,
-					featureid,type_id,cell,method,ftype,ftrans,tlist,flanking,normalize,
-					hidden_unit,batch_size,lr=0.001,step=5,
-					activation='relu',min_delta=0.001,
-					attention=1,fc1=0,fc2=0,units1=[50,50,50,25,50,25,0,0],kmer_size=[6,5],tol=5):
-		_Base1.__init__(self, chromosome=chromosome,run_id=run_id,generate=generate,
-							chromvec=chromvec,test_chromvec=test_chromvec,
-							n_epochs=n_epochs,species_id=species_id,
-							featureid=featureid,type_id=type_id,cell=cell,method=method,
-							ftype=ftype,ftrans=ftrans,tlist=tlist,flanking=flanking,normalize=normalize,
-							hidden_unit=hidden_unit,batch_size=batch_size,lr=lr,step=step,
-							activation=activation,min_delta=min_delta,
-							attention=attention,fc1=fc1,fc2=fc2,units1=units1,kmer_size=kmer_size,tol=tol)
+# 	def __init__(self, chromosome,run_id,generate,chromvec,test_chromvec,n_epochs,species_id,
+# 					featureid,type_id,cell,method,ftype,ftrans,tlist,flanking,normalize,
+# 					hidden_unit,batch_size,lr=0.001,step=5,
+# 					activation='relu',min_delta=0.001,
+# 					attention=1,fc1=0,fc2=0,units1=[50,50,50,25,50,25,0,0],kmer_size=[6,5],tol=5):
+# 		_Base1.__init__(self, chromosome=chromosome,run_id=run_id,generate=generate,
+# 							chromvec=chromvec,test_chromvec=test_chromvec,
+# 							n_epochs=n_epochs,species_id=species_id,
+# 							featureid=featureid,type_id=type_id,cell=cell,method=method,
+# 							ftype=ftype,ftrans=ftrans,tlist=tlist,flanking=flanking,normalize=normalize,
+# 							hidden_unit=hidden_unit,batch_size=batch_size,lr=lr,step=step,
+# 							activation=activation,min_delta=min_delta,
+# 							attention=attention,fc1=fc1,fc2=fc2,units1=units1,kmer_size=kmer_size,tol=tol)
 		
-		print('training chromvec',chromvec)
-		print('test chromvec',test_chromvec)
-		self.max_iter = self.config['max_iter']
-		self.n_components = self.config['n_components']
+# 		print('training chromvec',chromvec)
+# 		print('test chromvec',test_chromvec)
+# 		self.max_iter = self.config['max_iter']
+# 		self.n_components = self.config['n_components']
 
-		if 'n_features' in self.config:
-			self.n_features = self.config['n_features']
-		else:
-			self.n_features = 1
+# 		if 'n_features' in self.config:
+# 			self.n_features = self.config['n_features']
+# 		else:
+# 			self.n_features = 1
 
-		if 'param_stat' in self.config:
-			self.param_stat = self.config['param_stat']
-		else:
-			self.param_stat = 'm'
+# 		if 'param_stat' in self.config:
+# 			self.param_stat = self.config['param_stat']
+# 		else:
+# 			self.param_stat = 'm'
 
-		self.eps = 1e-07
-		self.constant1 = np.log(2*3.1415926)
-		self.stats = dict()
-		# self.stats['obs_mean'] = dict()
-		self.eps = 1e-09
+# 		self.eps = 1e-07
+# 		self.constant1 = np.log(2*3.1415926)
+# 		self.stats = dict()
+# 		# self.stats['obs_mean'] = dict()
+# 		self.eps = 1e-09
 
-	def prepare_1(self,x_train1_trans,train_sel_list,idx_train):
+# 	def prepare_1(self,x_train1_trans,train_sel_list,idx_train):
 		
-		tol = self.tol
-		L = self.flanking
-		run_id = self.run_id
+# 		tol = self.tol
+# 		L = self.flanking
+# 		run_id = self.run_id
 			
-		seq_list = generate_sequences(train_sel_list[idx_train],region_list=self.region_boundary)
-		x_train, y_train, vec_train, vec_train_local = sample_select2a1(x_train1_trans[idx_train], y_signal_train1[idx_train], 
-														train_sel_list[idx_train], seq_list, tol, L)
+# 		seq_list = generate_sequences(train_sel_list[idx_train],region_list=self.region_boundary)
+# 		x_train, y_train, vec_train, vec_train_local = sample_select2a1(x_train1_trans[idx_train], y_signal_train1[idx_train], 
+# 														train_sel_list[idx_train], seq_list, tol, L)
 
-		return x_train, y_train, vec_train, vec_train_local
+# 		return x_train, y_train, vec_train, vec_train_local
 
-	# control function
-	def control_1(self,path1,file_prefix):
+# 	# control function
+# 	def control_1(self,path1,file_prefix):
 
-		vec2 = dict()
-		for type_id2 in self.t_list:
-			print("feature transform")
-			start = time.time()
-			feature_dim_transform = self.feature_dim_transform
-			self.type_id2 = type_id2
-			self.prep_data(path1,file_prefix,type_id2,feature_dim_transform)
-			stop = time.time()
-			print('prepare',stop-start)
-			log_likelihood = self.training()
-			vec2[type_id2] = log_likelihood
+# 		vec2 = dict()
+# 		for type_id2 in self.t_list:
+# 			print("feature transform")
+# 			start = time.time()
+# 			feature_dim_transform = self.feature_dim_transform
+# 			self.type_id2 = type_id2
+# 			self.prep_data(path1,file_prefix,type_id2,feature_dim_transform)
+# 			stop = time.time()
+# 			print('prepare',stop-start)
+# 			log_likelihood = self.training()
+# 			vec2[type_id2] = log_likelihood
 
-		train_id, valid_id, test_id = self.idx_list['train'], self.idx_list['valid'], self.idx_list['test']
-		print('test_sel_list',len(self.train_sel_list[test_id]))
-		vec2.update({'train':self.train_sel_list[train_id],'valid':self.train_sel_list[valid_id],'test':self.train_sel_list[test_id]})
-		filename1 = '%s/feature_transform_%d_%d_%d_%d.npy'%(self.path,self.t_list[0],feature_dim_transform[0],self.method,self.run_id,self.method)
-		np.save(filename1,vec2,allow_pickle=True)
+# 		train_id, valid_id, test_id = self.idx_list['train'], self.idx_list['valid'], self.idx_list['test']
+# 		print('test_sel_list',len(self.train_sel_list[test_id]))
+# 		vec2.update({'train':self.train_sel_list[train_id],'valid':self.train_sel_list[valid_id],'test':self.train_sel_list[test_id]})
+# 		filename1 = '%s/feature_transform_%d_%d_%d_%d.npy'%(self.path,self.t_list[0],feature_dim_transform[0],self.method,self.run_id,self.method)
+# 		np.save(filename1,vec2,allow_pickle=True)
 
-		return True
+# 		return True
 
-	
+
+
