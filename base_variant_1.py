@@ -8,100 +8,54 @@ from collections import deque
 
 import pandas as pd
 import numpy as np
-import processSeq
 import matplotlib.pyplot as plt
 plt.switch_backend('Agg')
-import numpy as np
-from scipy import stats
-from scipy.stats import multivariate_normal
-from scipy.stats import kurtosis, skew
-from scipy.stats import pearsonr, spearmanr
 
+import tensorflow as tf
 import keras
 keras.backend.image_data_format()
 from keras import backend as K
 from keras import regularizers
 from keras.layers import Input, Dense, Reshape, Lambda, Conv1D, Flatten, MaxPooling1D, UpSampling1D, GlobalMaxPooling1D
-from keras.layers import LSTM, Bidirectional
-from keras.layers import BatchNormalization, Dropout, Concatenate, Embedding
-from keras.layers import Activation,Dot,dot
-from keras.models import Model, clone_model
+from keras.layers import LSTM, Bidirectional, BatchNormalization, Dropout, Concatenate, Embedding, Activation, Dot, dot
+from keras.models import Model, clone_model, Sequential
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping,ModelCheckpoint
 from keras.constraints import unitnorm
 from keras_layer_normalization import LayerNormalization
-import tensorflow as tf
 tf.keras.backend.set_floatx('float32')
 
+import sklearn as sk
 from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import average_precision_score,precision_score,recall_score,f1_score
-from sklearn.metrics import roc_curve, precision_recall_curve
-from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay
-from sklearn.metrics import roc_auc_score,accuracy_score,matthews_corrcoef
-from processSeq import load_seq_1, kmer_dict, load_signal_1, load_seq_2, load_seq_2_kmer, load_seq_altfeature_1
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.manifold import LocallyLinearEmbedding, MDS, Isomap, TSNE
+from sklearn.decomposition import PCA, IncrementalPCA, KernelPCA, SparsePCA, TruncatedSVD, FastICA, NMF, MiniBatchDictionaryLearning
+from sklearn.random_projection import GaussianRandomProjection, SparseRandomProjection
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import mean_squared_error, explained_variance_score, mean_absolute_error, median_absolute_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import KFold, GroupKFold, train_test_split
+from sklearn.metrics import mean_squared_error, explained_variance_score, mean_absolute_error, median_absolute_error, r2_score
+from sklearn.metrics import average_precision_score, precision_score, recall_score, f1_score, roc_auc_score, matthews_corrcoef
+from sklearn.metrics import roc_curve, precision_recall_curve, RocCurveDisplay, PrecisionRecallDisplay
+from sklearn.metrics import roc_auc_score,accuracy_score,matthews_corrcoef
+from scipy import stats
+from scipy.stats import multivariate_normal, kurtosis, skew, pearsonr, spearmanr
+import processSeq
+from processSeq import load_seq_1, kmer_dict, load_signal_1, load_seq_2, load_seq_2_kmer, load_seq_altfeature
 import xgboost
 import pickle
 
 import os.path
 from optparse import OptionParser
-from sklearn.svm import SVR
 
-import sklearn as sk
-import matplotlib.pyplot as plt
-import tensorflow as tf
-from sklearn.manifold import LocallyLinearEmbedding
-from sklearn.decomposition import PCA
-from sklearn.decomposition import IncrementalPCA
-from sklearn.decomposition import KernelPCA
-from sklearn.decomposition import SparsePCA
-from sklearn.manifold import MDS
-from sklearn.manifold import Isomap
-from sklearn.manifold import TSNE
-from sklearn.decomposition import TruncatedSVD
-from sklearn.random_projection import GaussianRandomProjection
-from sklearn.decomposition import FastICA, NMF
-from sklearn.decomposition import MiniBatchDictionaryLearning
-from sklearn.random_projection import SparseRandomProjection
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import KFold, GroupKFold, train_test_split
-import keras
-from keras.models import Sequential, Model
-from keras.layers import Dense
-from keras.optimizers import Adam
 import time
 from timeit import default_timer as timer
 
-from utility_1 import sample_select2, sample_select2a, sample_select2a_3
-from utility_1 import dimension_reduction1, feature_transform1, get_model2a1, get_model2a_sequential, get_model2a1_sequential, get_model2a1_attention_sequential
-from utility_1 import get_model2a_1, get_model2a_2
-from utility_1 import get_model2a1_attention1_sequential, get_model2a1_attention2_sequential
-from utility_1 import get_model2a1_attention1_2_sequential, get_model2a1_attention2_2_sequential
-from utility_1 import get_model2a_attention1_sequential, get_model2a_attention2_sequential, get_model2a2_attention
-from utility_1 import read_predict, read_predict_weighted
-from utility_1 import sample_select2a_pre
-from utility_1 import get_model2a1_attention_1_1, get_model2a1_attention_1_2, get_model2a1_attention_1_3
-from utility_1 import get_model2a1_attention, get_model2a1_sequential
-from utility_1 import get_model2a1_attention_1, get_model2a1_attention_2, get_model2a_sequential
-from utility_1 import search_region_include, search_region, aver_overlap_value
-from processSeq import load_seq_altfeature
-from utility_1 import get_model2a1_attention_1_1, get_model2a1_attention_1_2, get_model2a1_attention_1_3
-from utility_1 import get_model2a1_attention_1_2_select
-from utility_1 import get_model2a1_attention1, get_model2a1_attention_1_2_2
-from utility_1 import get_model2a1_attention, get_model2a1_sequential
-from utility_1 import get_model2a1_attention_1, get_model2a1_attention_2, get_model2a_sequential
-from utility_1 import search_region_include, search_region, aver_overlap_value
-from processSeq import load_seq_altfeature
-from utility_1 import mapping_Idx
-# from utility_1 import DataGenerator3
 import utility_1
-import utility_1_5
+from utility_1 import mapping_Idx
+
 import h5py
 import json
 
@@ -230,69 +184,9 @@ def score_2a(y, y_predicted):
 
 	return vec1
 
-## evaluation 
-	# compare estimated score with existing elements
-	# filename1: estimated attention
-	# filename2: ERCE
-	def compare_with_regions(self,filename1, filename2, output_filename, output_filename1, tol=2, filename1a=''):
-
-		data1 = pd.read_csv(filename1,sep='\t')
-		# data1a = pd.read_csv(filename1a,sep='\t')
-		colnames1 = list(data1)
-		chrom1, serial1 = np.asarray(data1['chrom']), np.asarray(data1['serial'])
-		# b1 = np.where(chrom1!='chr16')[0]
-		# data_1 = data1.loc[b1,colnames1]
-
-		# data3 = pd.concat([data_1,data1a], axis=0, join='outer', ignore_index=True, 
-		# 			keys=None, levels=None, names=None, verify_integrity=False, copy=True)
-		
-		data3 = data1
-		print(list(data3))
-		# data3 = data3.sort_values(by=['serial'])
-		num1 = data3.shape[0]
-		print(num1)
-		label1 = np.zeros(num1)
-		chrom1, start1, stop1 = data3['chrom'], data3['start'], data3['stop']
-		attention1 = data3[colnames1[-1]]
-
-		# load ERCE files
-		data2 = pd.read_csv(filename2,header=None,sep='\t')
-		colnames2 = list(data2)
-		col1, col2, col3 = colnames2[0], colnames2[1], colnames2[2]
-		chrom2, start2, stop2 = data2[col1], data2[col2], data2[col3]
-
-		num2 = len(chrom2)
-		score1 = -np.ones(num2)
-		for i in range(0,num2):
-			t_chrom, t_start, t_stop = chrom2[i], start2[i], stop2[i]
-			b1_ori = np.where((chrom1==t_chrom)&(start1<t_stop)&(stop1>t_start))[0]
-			if len(b1_ori)==0:
-				continue
-			# tolerance of the region
-			s1 = max(0,b1_ori[0]-tol)
-			s2 = min(len(chrom1),b1_ori[0]+tol+1)
-			b1 = list(range(s1,s2))
-			# b1 = np.where((chrom1==t_chrom)&(start1>=t_start)&(stop1<=t_stop))[0]
-			label1[b1_ori] = 1+i
-			# select the maximum score in a region
-			t_score = np.max(attention1[b1])
-			score1[i] = t_score
-			if i%100==0:
-				print(i,t_score)
-
-		data3['label'] = label1
-		data3.to_csv(output_filename,index=False,sep='\t')
-
-		data2['score'] = score1
-		# b1 = np.where(score1>0)[0]
-		# data2 = data2.loc[b1,list(data2)]
-		data2.to_csv(output_filename1,index=False,sep='\t')
-
-		return data2, data3
-
 def read_phyloP(species_name):
 
-	path1 = '/volume01/yy3/seq_data/dl/replication_timing'
+	path1 = './'
 	filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
 	# filename2a = 'test_seq_%s.1.txt'%(species_name)
 	file1 = pd.read_csv(filename1,sep='\t')
@@ -315,28 +209,8 @@ def read_phyloP(species_name):
 		cnt = 0
 		b1 = [-1]
 		for i in b:
-			# if cnt==0:
-			# 	b1 = np.where((start>=start_ori[i])&(stop<stop_ori[i]))[0]
-			# else:
-			# 	t1 = b1[-1]+1
-			# 	while start[t1]<start_ori[i]:
-			# 		t1 += 1
-			# 	if start[t1]>=start_ori[i]:
-			# 		id1 = t1
-			# 		while start[t1]<start_ori[i]:
-			# 			t1 += 1
-
 			t1 = b1[-1]+1
 			b1 = np.where((start[t1:]>=start_ori[i])&(stop[t1:]<stop_ori[i]))[0]+t1
-			# b1 = []
-			# while start[t1]<start_ori[i]:
-			# 	t1 += 1
-			# if start[t1]>=start_ori[i]:
-			# 	id1 = t1
-			# 	while stop[t1]<stop_ori[i]:
-			# 		t1 += 1
-			# 	id2 = t1
-			# 	b1 = np.asarray(range(id1,id2))
 			if len(b1)==0:
 				b1 = [-1]
 				continue
@@ -375,212 +249,8 @@ def read_phyloP(species_name):
 
 	return vec1
 
-def read_phyloP_single(species_name,chrom_id):
-
-	path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-	file1 = pd.read_csv(filename1,sep='\t')
-	
-	col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1['serial'])
-	num_sample = len(chrom_ori)
-	# chrom_vec = np.unique(chrom_ori)
-	chrom_vec = [chrom_id]
-	n_level, offset, magnitude = 15, 10, 2
-
-	for chrom_id in chrom_vec:
-		filename1 = '%s/phyloP/hg19.phyloP100way.%s.bedGraph'%(path1,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		len1 = stop-start
-		b = np.where(chrom_ori==chrom_id)[0]
-		num_sample1 = len(b)
-		vec1 = np.zeros((num_sample1,n_level+4))
-		print(chrom_id,len(chrom),len(b))
-		cnt = 0
-		pre_b1 = [-1]
-		b1 = pre_b1
-		for i in b:
-			# if cnt==0:
-			# 	b1 = np.where((start>=start_ori[i])&(stop<stop_ori[i]))[0]
-			# else:
-			# 	t1 = b1[-1]+1
-			# 	while start[t1]<start_ori[i]:
-			# 		t1 += 1
-			# 	if start[t1]>=start_ori[i]:
-			# 		id1 = t1
-			# 		while start[t1]<start_ori[i]:
-			# 			t1 += 1
-
-			t1 = pre_b1[-1]+1
-			b1 = np.where((start[t1:]>=start_ori[i])&(stop[t1:]<stop_ori[i]))[0]+t1
-			# b1 = []
-			# while start[t1]<start_ori[i]:
-			# 	t1 += 1
-			# if start[t1]>=start_ori[i]:
-			# 	id1 = t1
-			# 	while stop[t1]<stop_ori[i]:
-			# 		t1 += 1
-			# 	id2 = t1
-			# 	b1 = np.asarray(range(id1,id2))
-			if len(b1)==0:
-				continue
-
-			t_len1, t_score = np.asarray(len1[b1]), np.asarray(score[b1])
-			s1 = 0
-			s2 = np.sum(t_len1)
-			i1 = cnt
-			for j in range(0,n_level):
-				temp1 = (j-offset)*magnitude
-				b2 = np.where((t_score<temp1+magnitude)&(t_score>=temp1))[0]
-				# print(b2)
-				vec1[i1,j] = np.sum(t_len1[b2])*1.0/s2
-				s1 = s1+temp1*vec1[i1,j]
-
-			vec1[i1,n_level:n_level+4] = [s1,np.median(t_score),np.max(t_score),np.min(t_score)]
-			
-			cnt += 1
-			pre_b1 = b1
-			if cnt%1000==0:
-				print(chrom_id,cnt,len(b1),s2,vec1[i1,12:16])
-				# break
-		
-		# dict1 = dict()
-		# dict1['vec'], dict1['index'] = vec1,b
-		# np.save('phyloP_%s'%(chrom_id),dict1,allow_pickle=True)
-		fields = ['index']
-		for j in range(0,n_level):
-			temp1 = (j-offset)*magnitude
-			fields.append('%s-%s'%(temp1,temp1+magnitude))
-		fields.extend(range(0,4))
-		idx = serial_ori[b]
-		data1 = pd.DataFrame(data = np.hstack((idx[:,np.newaxis],vec1)),columns=fields)
-		data1.to_csv('phyloP_%s.txt'%(chrom_id),sep='\t',index=False)
-
-	return vec1
-
-def read_phyloP_pre(file_path):
-
-	# file1 = pd.read_csv(ref_filename,sep='\t')	
-	# # col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	# colnames = list(file1)
-	# col1, col2, col3 = colnames[0], colnames[1], colnames[2]
-	# chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1['serial'])
-	# num_sample = len(chrom_ori)
-	# chrom_vec = np.unique(chrom_ori)
-	chrom_vec = [1,2,3,4,5]
-	# n_level, offset, magnitude = 15, 10, 2
-
-	for chrom_id in chrom_vec:
-		# filename1 = '%s/hg19.phyloP100way.%s.bedGraph'%(file_path,chrom_id)
-		filename1 = '%s/chr%s.phyloP100way.bedGraph'%(file_path,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		print(len(chrom),np.max(score),np.min(score))
-
-	return True
-
-def read_phyloP_1_ori(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,magnitude=2):
-
-	# path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-	file1 = pd.read_csv(ref_filename,header=header,sep='\t')
-	
-	# col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	colnames = list(file1)
-	col1, col2, col3, col4 = colnames[0], colnames[1], colnames[2], colnames[3]
-	chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1[col4])
-	num_sample = len(chrom_ori)
-	# chrom_vec = np.unique(chrom_ori)
-	# chrom_vec = [chrom_id]
-	# n_level, offset, magnitude = 15, 10, 2
-	score_max = (n_level-offset)*magnitude
-	region_len = stop_ori-start_ori
-
-	for chrom_id in chrom_vec:
-		# filename1 = '%s/hg19.phyloP100way.%s.bedGraph'%(file_path,chrom_id)
-		filename1 = '%s/chr%s.phyloP100way.bedGraph'%(file_path,chrom_id)
-		data1 = pd.read_csv(filename1,header=None,sep='\t')
-		chrom, start, stop, score = data1[0], data1[1], data1[2], data1[3]
-		len1 = stop-start
-		chrom_id1 = 'chr%s'%(chrom_id)
-		b = np.where(chrom_ori==chrom_id1)[0]
-		num_sample1 = len(b)
-		vec1 = np.zeros((num_sample1,n_level+4))
-		print(chrom_id,len(chrom),len(b))
-		cnt = 0
-		pre_b1 = [-1]
-		b1 = pre_b1
-		pre_stop = 0
-		for i in b:
-			# if cnt==0:
-			# 	b1 = np.where((start>=start_ori[i])&(stop<stop_ori[i]))[0]
-			# else:
-			# 	t1 = b1[-1]+1
-			# 	while start[t1]<start_ori[i]:
-			# 		t1 += 1
-			# 	if start[t1]>=start_ori[i]:
-			# 		id1 = t1
-			# 		while start[t1]<start_ori[i]:
-			# 			t1 += 1
-
-			t1 = pre_b1[-1]+1
-			window1 = region_len[i] + start_ori[i] - pre_stop + 10
-			b1 = np.where((start[t1:t1+window1]>=start_ori[i])&(stop[t1:t1+window1]<stop_ori[i]))[0]+t1
-			pre_stop = stop_ori[i]
-			# b1 = []
-			# while start[t1]<start_ori[i]:
-			# 	t1 += 1
-			# if start[t1]>=start_ori[i]:
-			# 	id1 = t1
-			# 	while stop[t1]<stop_ori[i]:
-			# 		t1 += 1
-			# 	id2 = t1
-			# 	b1 = np.asarray(range(id1,id2))
-			if len(b1)==0:
-				continue
-
-			t_len1, t_score = np.asarray(len1[b1]), np.asarray(score[b1])
-			t_score[t_score>score_max] = score_max-1e-04
-			s1 = 0
-			s2 = np.sum(t_len1)
-			i1 = cnt
-			for j in range(0,n_level):
-				temp1 = (j-offset)*magnitude
-				b2 = np.where((t_score<temp1+magnitude)&(t_score>=temp1))[0]
-				# print(b2)
-				vec1[i1,j] = np.sum(t_len1[b2])*1.0/s2
-				s1 = s1+temp1*vec1[i1,j]
-
-			vec1[i1,n_level:n_level+4] = [s1,np.median(t_score),np.max(t_score),np.min(t_score)]
-			
-			cnt += 1
-			pre_b1 = b1
-			if cnt%1000==0:
-				print(chrom_id,cnt,len(b1),s2,vec1[i1,12:16])
-				# break
-		
-		# dict1 = dict()
-		# dict1['vec'], dict1['index'] = vec1,b
-		# np.save('phyloP_%s'%(chrom_id),dict1,allow_pickle=True)
-		fields = ['index']
-		for j in range(0,n_level):
-			temp1 = (j-offset)*magnitude
-			fields.append('%s-%s'%(temp1,temp1+magnitude))
-		fields.extend(range(0,4))
-		idx = serial_ori[b]
-		data1 = pd.DataFrame(data = np.hstack((idx[:,np.newaxis],vec1)),columns=fields)
-		data1.to_csv('phyloP_%s.txt'%(chrom_id),sep='\t',index=False)
-
-	return vec1
-
 def read_phyloP_1(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,magnitude=2):
 
-	# path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
 	file1 = pd.read_csv(ref_filename,header=header,sep='\t')
 	
 	# col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
@@ -612,7 +282,7 @@ def read_phyloP_1(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,m
 			t_start, t_stop = start_ori[i], stop_ori[i] # position of zero region
 			position = [t_start,t_stop]
 			if start_idx<=m_idx:
-				b1, start_idx = search_region_include(position, start, stop, m_idx, start_idx)
+				b1, start_idx = utility_1.search_region_include(position, start, stop, m_idx, start_idx)
 
 			# print(count,t_start,t_stop,t_stop-t_start,start_idx,len(id3))
 			if len(b1)==0:
@@ -652,20 +322,6 @@ def read_phyloP_1(ref_filename,header,file_path,chrom_vec,n_level=15,offset=10,m
 	return vec1
 
 def read_motif_1(filename,output_filename=-1):
-
-	# path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-	# file1 = pd.read_csv(ref_filename,sep='\t')
-	
-	# # col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	# colnames = list(file1)
-	# col1, col2, col3 = colnames[0], colnames[1], colnames[2]
-	# chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1['serial'])
-	# num_sample = len(chrom_ori)
-	# # chrom_vec = np.unique(chrom_ori)
-	# chrom_vec = [chrom_id]
-	# n_level, offset, magnitude = 15, 10, 2
 
 	data1 = pd.read_csv(filename,sep='\t')
 	colnames = list(data1)
@@ -919,11 +575,7 @@ def select_region1_merge(filename_list,output_filename,type_id1=0,type_id2=1):
 
 	return data2, chrom_numList
 
-	
 class Reader(object):
-	# Implementation of N-step Advantage Actor Critic.
-	# This class inherits the Reinforce class, so for example, you can reuse
-	# generate_episode() here.
 
 	def __init__(self, ref_filename, feature_idvec = [1,1,1,1]):
 		# Initializes RepliSeq
@@ -931,8 +583,6 @@ class Reader(object):
 		self.feature_idvec = feature_idvec
 		
 	def generate_serial(self,filename1,filename2,output_filename,header=None):
-
-		# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 
 		data1 = pd.read_csv(filename2, header=header, sep='\t')
 		colnames = list(data1)
@@ -951,187 +601,6 @@ class Reader(object):
 			data2.to_csv(output_filename,header=flag,index=False,sep='\t')
 
 		return serial_vec, start_vec
-
-	def merge_file(self,ref_filename,output_filename,header=None):
-
-		celltype_vec = ['H1','HCT116','H9']
-		# celltype_vec = ['H1']
-		# path1 = '/volume01/yy3/seq_data/dl/replication_timing3/data_2'
-		path1 = '/volume01/yy3/seq_data/dl/replication_timing2'
-		
-		if header==None:
-			file1 = pd.read_csv(ref_filename,header=None,sep='\t')
-		else:
-			file1 = pd.read_csv(ref_filename,sep='\t')
-		colnames = list(file1)		
-		# col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-		col1, col2, col3, col_serial = colnames[0], colnames[1], colnames[2], colnames[3]
-		chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1[col_serial])
-		print('load ref serial', serial_ori.shape)
-		num_ratio = 16
-		for t_celltype in celltype_vec:
-			print(t_celltype)
-			replicate = 'R1'
-			serial_list = []
-			serial_vec = []
-			signal_vec = []
-			for i in range(1,num_ratio+1):
-				# filename2 = '%s/%s/%s/%s_%s.S%d.ratio.sorted.bedGraph'%(path1,t_celltype,replicate,t_celltype,replicate,i)
-				filename1 = '%s/%s/%s/%s_%s.S%d.ratio.sorted.bed'%(path1,t_celltype,replicate,t_celltype,replicate,i)
-				data1 = pd.read_csv(filename1,header=None,sep='\t')
-				serial = np.asarray(data1[3])
-				serial_list = np.union1d(serial,serial_list)
-				serial_vec.append(serial)
-				signal_vec.append(np.asarray(data1[4]))
-		
-			idx = mapping_Idx(serial_ori,serial_list)
-			data1 = file1.loc[idx,colnames]
-			data1.to_csv('idx.txt',header=False,index=False,sep='\t')
-			data1 = pd.read_csv(filename2,header=None,sep='\t')
-			mtx1 = np.zeros((len(serial_list),num_ratio))
-			for i in range(0,num_ratio):
-				id1 = mapping_Idx(serial_list,serial_vec[i])
-				mtx1[id1,i] = signal_vec[i]
-
-			data2 = pd.DataFrame(columns=list(range(1,num_ratio+1)),data=mtx1)
-			data3 = pd.concat([data1,data2], axis=1, join='outer', ignore_index=True, 
-								keys=None, levels=None, names=None, verify_integrity=False, copy=True)
-
-			data3.to_csv('%s_%s'%(t_celltype,output_filename),header=False,index=False,sep='\t')
-		
-		return data3
-
-	# def merge_file_1(self,ref_filename,celltype_vec,filename_list,output_filename,header=None):
-
-	# 	celltype_vec = ['H1','HCT116','H9']
-	# 	# celltype_vec = ['H1']
-	# 	# path1 = '/volume01/yy3/seq_data/dl/replication_timing3/data_2'
-	# 	path1 = '/volume01/yy3/seq_data/dl/replication_timing2'
-		
-	# 	if header==None:
-	# 		file1 = pd.read_csv(ref_filename,header=None,sep='\t')
-	# 	else:
-	# 		file1 = pd.read_csv(ref_filename,sep='\t')
-	# 	colnames = list(file1)		
-	# 	# col1, col2, col3 = '%s.chrom'%(species_name), '%s.start'%(species_name), '%s.stop'%(species_name)
-	# 	col1, col2, col3, col_serial = colnames[0], colnames[1], colnames[2], colnames[3]
-	# 	chrom_ori, start_ori, stop_ori, serial_ori = np.asarray(file1[col1]), np.asarray(file1[col2]), np.asarray(file1[col3]), np.asarray(file1[col_serial])
-	# 	print('load ref serial', serial_ori.shape)
-	# 	num_ratio = 16
-	# 	for filename1 in filename_list:
-	# 			data1 = pd.read_csv(filename1,header=None,sep='\t')
-	# 			serial = np.asarray(data1[3])
-	# 			serial_list = np.intersect1d(serial_ori,serial)
-	# 			serial_vec.append(serial)
-	# 			signal_vec.append(np.asarray(data1[4]))
-		
-	# 	idx = mapping_Idx(serial_ori,serial_list)
-		
-	# 	colnames = colnames.extend(celltype_vec)
-	# 	data2 = pd.DataFrame(columns=colnames)
-	# 	data2[col1], data2[col2], data2[col3], data2[col_serial] = chrom_ori[idx], start_ori[idx], stop_ori[idx], serial_list
-	# 	num1 = len(celltype_vec)
-	# 	for i in range(0,num1):
-	# 		id1 = mapping_Idx(serial_vec[i],serial_list)
-	# 		data2[celltype_vec[i]] = signal_vec[i][id1]
-
-	# 	data2.to_csv(output_filename,header=True,index=False,sep='\t')
-		
-	# 	return data2
-
-	def run_1(self):
-
-		filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
-
-		# generate serial
-		# header=None
-		# filename2 = 'hg38.5k.bed'
-		# output_filename = 'hg38_5k_serial.bed'
-		# self.generate_serial(filename1,filename2,output_filename,header)
-
-		# filename2 = 'hg38.10k.bed'
-		# output_filename = 'hg38_10k_serial.bed'
-		# self.generate_serial(filename1,filename2,output_filename,header)
-
-		# celltype_vec = ['GM12878','H1-hESC','H9','HCT116','HEK293','HFFc6','IMR-90','K562','RPE-hTERT','U2OS']
-		# path1 = '/volume01/yy3/seq_data/dl/replication_timing3/data_2'
-		# for t_celltype in celltype_vec:
-		# 	print(t_celltype)
-		# 	filename2 = '%s/%s.smooth.sorted.bedGraph'%(path1,t_celltype)
-		# 	output_filename = '%s/%s.smooth.sorted.bed'%(path1,t_celltype)
-		# 	self.generate_serial(filename1,filename2,output_filename,header)
-
-		celltype_vec = ['H1','HCT116','H9']
-		# celltype_vec = ['H1']
-		# path1 = '/volume01/yy3/seq_data/dl/replication_timing3/data_2'
-		path1 = '/volume01/yy3/seq_data/dl/replication_timing2'
-		num_ratio = 16
-		header = None
-		for t_celltype in celltype_vec:
-			print(t_celltype)
-			replicate = 'R1'
-			for i in range(1,num_ratio+1):
-				filename2 = '%s/%s/%s/%s_%s.S%d.ratio.sorted.bedGraph'%(path1,t_celltype,replicate,t_celltype,replicate,i)
-				output_filename = '%s/%s/%s/%s_%s.S%d.ratio.sorted.bed'%(path1,t_celltype,replicate,t_celltype,replicate,i)
-				self.generate_serial(filename1,filename2,output_filename,header)
-
-		# load motif
-		# print("loading motif...")
-		# motif_filename = '/volume01/yy3/seq_data/dl/replication_timing/hg38.motif.count.txt'
-		# output_filename1 = 'hg38.motif.txt'
-		# self.load_motif(filename1,motif_filename,output_filename1)
-
-		# filename1 = '/volume01/yy3/seq_data/genome/hg19.chrom.sizes'
-		# print("loading motif...")
-		# motif_filename = '/volume01/yy3/seq_data/dl/replication_timing/hg19.motif.count.txt'
-		# output_filename1 = 'hg19.motif.txt'
-		# self.load_motif(filename1,motif_filename,output_filename1)
-
-	def run_2(self):
-
-		file_path = '/volume01/yy3/seq_data/dl/replication_timing3/phyloP'
-		read_phyloP_pre(file_path)
-
-	def run_3(self,chrom_idvec):
-
-		ref_filename = '/volume01/yy3/seq_data/dl/replication_timing3/hg38_10k_serial.bed'
-		# file1 = pd.read_csv(ref_filename,sep='\t')
-		header = None
-		n_level, offset, magnitude = 15, 10, 2	
-		file_path = '/volume01/yy3/seq_data/dl/replication_timing3/phyloP'
-		read_phyloP_1_ori(ref_filename,header,file_path,chrom_idvec,n_level,offset,magnitude)
-
-	def run_5(self,resolution):
-
-		ref_filename = '/volume01/yy3/seq_data/dl/replication_timing3/hg38_%s_serial.bed'%(resolution)
-		header = None
-		filename = '/volume01/yy3/seq_data/dl/replication_timing3/hg38_%s_seq'%(resolution)
-		output_filename = 'test_gc_%s.txt'%(resolution)
-		read_gc_1(ref_filename,header,filename,output_filename)
-
-	def load_motif_ori(self,filename1,motif_filename,output_filename):
-
-		# output_filename = None
-		# ref_filename = 'hg38.5k.serial.bed'
-		# motif_filename = 'hg38.motif.count.txt'
-		# output_filename1 = None
-		mtx1, chrom, start, stop, colnames = read_motif_1(motif_filename)
-
-		serial_vec, start_vec = generate_serial_start(filename1,chrom,start,stop)
-
-		if output_filename!=None:
-			colnames2 = colnames[0:3]+['serial']+colnames[3:]
-			data2 = pd.DataFrame(columns=colnames2)
-			data2['chrom'], data2['start'], data2['stop'], data2['serial'] = chrom, start, stop, serial_vec
-
-			num1 = len(colnames)
-			for i in range(3,num1):
-				print(colnames[i])
-				data2[colnames[i]] = mtx1[:,i-3]
-
-			data2.to_csv(output_filename,header=True,index=False,sep='\t')
-
-		return True
 
 	def load_motif(self,filename1,motif_filename,output_filename):
 
@@ -1152,50 +621,14 @@ class Reader(object):
 
 			data1 = pd.concat([data2,data3], axis=1, join='outer', ignore_index=True, 
 								keys=None, levels=None, names=None, verify_integrity=False, copy=True)
-			# num1 = len(colnames)
-			# for i in range(3,num1):
-			# 	print(colnames[i])
-			# 	data2[colnames[i]] = mtx1[:,i-3]
 
 			data1.to_csv(output_filename,header=True,index=False,sep='\t')
 			print('data1',data1.shape)
 
 		return True
 
-	def load_phyloP(self):
-
-		# read_phyloP_single(species_name,chrom_id)]
-
-		x = 1
-
 class ConvergenceMonitor(object):
-	"""Monitors and reports convergence to :data:`sys.stderr`.
 
-	Parameters
-	----------
-	tol : double
-		Convergence threshold. EM has converged either if the maximum
-		number of iterations is reached or the log probability
-		improvement between the two consecutive iterations is less
-		than threshold.
-
-	n_iter : int
-		Maximum number of iterations to perform.
-
-	verbose : bool
-		If ``True`` then per-iteration convergence reports are printed,
-		otherwise the monitor is mute.
-
-	Attributes
-	----------
-	history : deque
-		The log probability of the data for the last two training
-		iterations. If the values are not strictly increasing, the
-		model did not converge.
-
-	iter : int
-		Number of iterations performed while training the model.
-	"""
 	_template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
 	def __init__(self, tol, n_iter, verbose):
@@ -1212,19 +645,6 @@ class ConvergenceMonitor(object):
 			class_name, _pprint(params, offset=len(class_name)))
 
 	def report(self, logprob):
-		"""Reports convergence to :data:`sys.stderr`.
-
-		The output consists of three columns: iteration number, log
-		probability of the data at the current iteration and convergence
-		rate.  At the first iteration convergence rate is unknown and
-		is thus denoted by NaN.
-
-		Parameters
-		----------
-		logprob : float
-			The log probability of the data as computed by EM algorithm
-			in the current iteration.
-		"""
 		if self.verbose:
 			delta = logprob - self.history[-1] if self.history else np.nan
 			message = self._template.format(
@@ -1236,32 +656,11 @@ class ConvergenceMonitor(object):
 
 	@property
 	def converged(self):
-		"""``True`` if the EM algorithm converged and ``False`` otherwise."""
-		# XXX we might want to check that ``logprob`` is non-decreasing.
 		return (self.iter == self.n_iter or
 				(len(self.history) == 2 and
 				 self.history[1] - self.history[0] < self.tol))
 
 class _Base1(BaseEstimator):
-	"""Base class for Hidden Markov Models.
-	"""
-	# def __init__(self, n_components=1, run_id=0,
-	# 			 startprob_prior=1.0, transmat_prior=1.0,
-	# 			 algorithm="viterbi", random_state=None,
-	# 			 n_iter=10, tol=1e-2, verbose=False,
-	# 			 params=string.ascii_letters,
-	# 			 init_params=string.ascii_letters):
-	# 	self.n_components = n_components
-	# 	self.params = params
-	# 	self.init_params = init_params
-	# 	self.startprob_prior = startprob_prior
-	# 	self.transmat_prior = transmat_prior
-	# 	self.algorithm = algorithm
-	# 	self.random_state = random_state
-	# 	self.n_iter = n_iter
-	# 	self.tol = tol
-	# 	self.verbose = verbose
-	# 	self.run_id = run_id
 
 	def __init__(self, file_path, species_id, resolution, run_id, generate,
 					chromvec,test_chromvec,
@@ -1276,6 +675,7 @@ class _Base1(BaseEstimator):
 		self.generate = generate
 		self.train_chromvec = chromvec
 		self.chromosome = chromvec[0]
+		print('train_chromvec',train_chromvec)
 		print('test_chromvec',test_chromvec)
 		self.test_chromvec = test_chromvec
 		self.config = config
@@ -1405,107 +805,11 @@ class _Base1(BaseEstimator):
 		print(self.filename_load,self.method,self.predict_context,self.attention)
 		self.set_generate(generate,filename1)
 
-	def score_samples(self, X, lengths=None):
-		"""Compute the log probability under the model and compute posteriors.
-
-		Parameters
-		----------
-		X : array-like, shape (n_samples, n_features)
-			Feature matrix of individual samples.
-
-		lengths : array-like of integers, shape (n_sequences, ), optional
-			Lengths of the individual sequences in ``X``. The sum of
-			these should be ``n_samples``.
-
-		Returns
-		-------
-		logprob : float
-			Log likelihood of ``X``.
-
-		posteriors : array, shape (n_samples, n_components)
-			State-membership probabilities for each sample in ``X``.
-
-		See Also
-		--------
-		score : Compute the    probability under the model.
-		decode : Find most likely state sequence corresponding to ``X``.
-		"""
-		check_is_fitted(self, "startprob_")
-		self._check()
-
-		X = check_array(X)
-		n_samples = X.shape[0]
-		logprob = 0
-		posteriors = np.zeros((n_samples, self.n_components))
-		for i, j in iter_from_X_lengths(X, lengths):
-			framelogprob = self._compute_log_likelihood(X[i:j])
-			logprobij, fwdlattice = self._do_forward_pass(framelogprob)
-			logprob += logprobij
-
-			bwdlattice = self._do_backward_pass(framelogprob)
-			posteriors[i:j] = self._compute_posteriors(fwdlattice, bwdlattice)
-		return logprob, posteriors
-
-	def score(self, X, lengths=None):
-		"""Compute the log probability under the model.
-
-		Parameters
-		----------
-		X : array-like, shape (n_samples, n_features)
-			Feature matrix of individual samples.
-
-		lengths : array-like of integers, shape (n_sequences, ), optional
-			Lengths of the individual sequences in ``X``. The sum of
-			these should be ``n_samples``.
-
-		Returns
-		-------
-		logprob : float
-			Log likelihood of ``X``.
-
-		See Also
-		--------
-		score_samples : Compute the log probability under the model and
-			posteriors.
-		decode : Find most likely state sequence corresponding to ``X``.
-		"""
-		check_is_fitted(self, "startprob_")
-		self._check()
-
-		X = check_array(X)
-		logprob = 0
-		for i, j in iter_from_X_lengths(X, lengths):
-			framelogprob = self._compute_log_likelihood(X[i:j])
-			logprobij, _fwdlattice = self._do_forward_pass(framelogprob)
-			logprob += logprobij
-		return logprob
-
-	def fit(self, X, lengths=None):
-		"""Estimate model parameters.
-
-		An initialization step is performed before entering the
-		EM algorithm. If you want to avoid this step for a subset of
-		the parameters, pass proper ``init_params`` keyword argument
-		to estimator's constructor.
-
-		Parameters
-		----------
-		X : array-like, shape (n_samples, n_features)
-			Feature matrix of individual samples.
-
-		lengths : array-like of integers, shape (n_sequences, )
-			Lengths of the individual sequences in ``X``. The sum of
-			these should be ``n_samples``.
-
-		Returns
-		-------
-		self : object
-			Returns self.
-		"""
-
-		return self
-
 	def load_ref_serial(self, ref_filename, header=None):
+
+		# path2 = '/volume01/yy3/seq_data/dl/replication_timing'
+		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
+		# filename2a = 'test_seq_%s.1.txt'%(species_name)
 		if header==None:
 			file1 = pd.read_csv(ref_filename,header=header,sep='\t')
 		else:
@@ -1520,6 +824,7 @@ class _Base1(BaseEstimator):
 
 	# load local serial and signal
 	def load_local_serial(self, filename1, header=None, region_list=[], type_id2=1, signal_normalize=1,region_list_1=[]):
+
 		if header==None:
 			file2 = pd.read_csv(filename1,header=header,sep='\t')
 		else:
@@ -1534,15 +839,6 @@ class _Base1(BaseEstimator):
 
 		b = np.where((self.chrom!='chrX')&(self.chrom!='chrY')&(self.chrom!='chrM'))[0]
 		self.chrom, self.start, self.stop, self.serial = self.chrom[b], self.start[b], self.stop[b], self.serial[b]
-
-		# label = np.asarray(file1['label'])
-		# group_label = np.asarray(file1['group_label'])
-		# if self.species_id.find('hg')>=0:
-		# 	chrom_num = 22
-		# elif self.species_id.find('mm')>=0:
-		# 	chrom_num = 19
-		# else:
-		# 	chrom_num = len(np.unique(self.chrom))
 
 		if self.chrom_num>0:
 			chrom_num = self.chrom_num
@@ -1639,7 +935,6 @@ class _Base1(BaseEstimator):
 			return
 
 		# y_signal_test_ori = signal_normalize(y_signal_test,[0,1])
-
 		# shuffle array
 		# x_test_trans, shuffle_id2 = shuffle_array(x_test_trans)
 		# test_sel_list = test_sel_list[shuffle_id2]
@@ -1710,6 +1005,11 @@ class _Base1(BaseEstimator):
 				if (self.feature_dim_motif==0) or (flag_1==True):
 					x_train1_trans = x_train1_trans_ori[:,0:-motif_dim_ori]
 				else:
+					# d1 = np.min((dim1-motif_dim_ori+feature_dim2,d1))
+					# d2 = dim1-motif_dim_ori
+					# sel_id1 = list(range(21))+list(range(21,21+feature_dim1))
+					# x_train1_trans_1 = x_train1_trans[:,sel_id1]
+					# x_train1_trans_2 = x_train1_trans[:,d2:d1]
 					x_train1_trans_1 = x_train1_trans_ori[:,0:dim1-motif_dim_ori]
 					x_train1_trans_2 = x_train1_trans_ori[:,dim1-motif_dim_ori:]
 
@@ -1761,6 +1061,22 @@ class _Base1(BaseEstimator):
 			if (self.feature_dim_motif==1) and (flag_1==False):
 				x_train1_trans = np.hstack((x_train1_trans,x_train1_trans_2[id1,0:feature_dim2]))
 
+			# id1 = mapping_Idx(self.serial_ori,serial2)
+			# b1 = (id1>=0)
+			# id1 = id1[b1]
+			# serial2, feature_mtx = serial2[b1], feature_mtx[b1]
+
+			# chrom1 = self.chrom_ori[id1]
+			# chrom2 = np.zeros(len(serial2),dtype=np.int32)
+			# chrom_vec = np.unique(chrom1)
+			# for chrom_id in chrom_vec:
+			# 	b2 = np.where(chrom1==chrom_id)[0]
+			# 	chrom_id1 = int(chrom_id[3:])
+			# 	chrom2[b2] = chrom_id1
+
+			# x_train1_trans = feature_mtx[:,0:feature_dim1]
+			# trans_sel_list_ori = np.vstack((chrom2,serial2)).T
+
 		else:
 			print('data not found!')
 
@@ -1777,10 +1093,14 @@ class _Base1(BaseEstimator):
 		normalize, flanking, attention, run_id = self.normalize, self.flanking, self.attention, self.run_id
 		config = self.config
 		vec2 = dict()
-		m_corr, m_explain = [0,0], [0,0]
-		# config = {'n_epochs':n_epochs,'feature_dim':feature_dim,'output_dim':output_dim,'fc1_output_dim':fc1_output_dim}
 		tol = self.tol
 		L = flanking
+
+		# np.save(filename1)
+		print("feature transform")
+		# filename1 = '%s/%s_%d_%d_%d.npy'%(path1,file_prefix,type_id2,feature_dim_transform[0],feature_dim_transform[1])
+		
+		print(self.species_id)
 
 		t_featuredim1, t_featuredim2 = feature_dim_transform[0], feature_dim_transform[1]
 
@@ -1790,8 +1110,6 @@ class _Base1(BaseEstimator):
 				flag1 = True
 
 		if (self.species_id=='mm10'):
-			# if self.feature_dim_select1>=0:
-			# x_train1_trans = x_train1_trans[:,0:(2+t_featuredim1)]
 			flag1 = True
 
 		if (t_featuredim1>0) or (flag1==False):
@@ -1801,30 +1119,8 @@ class _Base1(BaseEstimator):
 				return -1
 
 		if t_featuredim2>0:
-			# print("loading data...")
-			# data1 = np.load(filename1,allow_pickle=True)
-			# data_1 = data1[()]
-			# x_train1_trans, train_sel_list_ori = np.asarray(data_1['x1']), np.asarray(data_1['idx'])
 			print('train_sel_list',train_sel_list_ori.shape)
 			print('x_train1_trans',x_train1_trans.shape)
-
-			# t_featuredim1, t_featuredim2 = feature_dim_transform[0], feature_dim_transform[1]
-			# flag1 = False
-			# if self.species_id=='hg38':
-			# 	if 'motif_trans_typeid' in self.config:
-			# 		flag1 = True
-
-			# 	if (self.feature_dim_motif==0) or (flag1==True):
-			# 		x_train1_trans = x_train1_trans[:,0:-motif_dim_ori]
-			# 	else:
-			# 		d1 = x_train1_trans.shape[1]
-			# 		d1 = np.min((d1-motif_dim_ori+t_featuredim2,d1))
-			# 		x_train1_trans = x_train1_trans[:,0:d1]
-
-			# if (self.species_id=='mm10'):
-			# 	# if self.feature_dim_select1>=0:
-			# 	x_train1_trans = x_train1_trans[:,0:(2+t_featuredim1)]
-			# 	flag1 = True
 
 			if (self.feature_dim_motif>=1) and (flag1==True):
 				if self.species_id=='mm10':
@@ -1860,9 +1156,6 @@ class _Base1(BaseEstimator):
 			return
 
 		x_train1_trans = self.feature_dim_select(x_train1_trans,feature_dim_transform)
-
-		# print(x_train1_trans.shape)
-		# print(self.feature_dim_select1)
 
 		# feature loaded not specific to cell type
 		if load_type==1:
@@ -2065,7 +1358,8 @@ class _Base1(BaseEstimator):
 		# filename1 = 'mm10_%d_%s_encoded1.h5'%(self.config['cell_type1'],chrom_id1)
 		self.species_id = 'mm10'
 		self.cell_type1 = self.config['cell_type1']
-		file_path1 = 'data1'
+		file_path1 = '/work/magroup/yy3/data1/replication_timing3/mouse'
+		# filename1 = '%s/mm10_5k_seq_genome%d_1.txt'%(file_path1,self.config['cell_type1'])
 
 		chrom_id1 = 'chr1'
 		filename1 = '%s_%d_%s_encoded1.h5'%(self.species_id,self.cell_type1,chrom_id1)
@@ -2103,6 +1397,48 @@ class _Base1(BaseEstimator):
 		list1, serial_vec = np.asarray(list1), np.asarray(serial_vec)
 		serial_vec = np.hstack((list1[:,np.newaxis],serial_vec))
 		f_mtx = np.asarray(list2)
+
+		# data_1 = pd.read_csv(filename1,sep='\t')
+		# colnames = list(data_1)
+		# local_serial = np.asarray(data_1['serial'])
+		# local_seq = np.asarray(data_1['seq'])	
+		# print('local_seq', local_seq.shape)
+
+		# serial_vec = local_serial
+		# f_mtx = local_seq
+
+		# filename2 = '%s/mm10_5k_serial.bed'%(file_path1)
+		# file2 = pd.read_csv(filename2,header=None,sep='\t')
+		# ref_chrom, ref_start, ref_stop, ref_serial = np.asarray(file2[0]), np.asarray(file2[1]), np.asarray(file2[2]), np.asarray(file2[3])
+
+		# # assert list(local_serial==list(ref_serial))
+
+		# id_vec1 = []
+		# for chrom_id in chrom_vec:
+		# 	# if chrom_id<22:
+		# 	# 	continue
+		# 	# chrom_id1 = 'chr%s'%(chrom_id)
+		# 	id1 = np.where(ref_chrom=='chr%d'%(chrom_id))[0]
+		# 	id_vec1.extend(id1)
+		# 	print(chrom_id,len(id1))
+
+		# id_vec1 = np.asarray(id_vec1)
+		# ref_chrom_1, ref_serial_1 = ref_chrom[id_vec1], ref_serial[id_vec1]
+		# print('ref chrom local', len(ref_chrom_1), len(ref_serial_1))
+
+		# id1 = utility_1.mapping_Idx(ref_serial_1,local_serial)
+		# id2 = np.where(id1>=0)[0]
+		# id1 = id1[id2]
+		# # assert len(id2)==len(id1)
+
+		# chrom1 = ref_chrom_1[id1]
+		# local_chrom = [int(chrom1[3:]) for chrom1 in ref_chrom_1]
+		# local_chrom = np.asarray(local_chrom)
+		# local_serial, local_seq = local_serial[id2], local_seq[id2]
+
+		# serial_vec = np.column_stack((local_chrom,local_serial))
+		# f_mtx = np.asarray(local_seq)
+
 		return serial_vec, f_mtx
 
 	# find serial and feature vectors
@@ -2120,8 +1456,6 @@ class _Base1(BaseEstimator):
 			if (os.path.exists(filename1)==False) or (type_id2==1):
 
 				if self.config['species_id']==0:
-					# filename2 = 'mm10_%d_%s_encoded1.h5'%(self.config['cell_type1'],chrom_id1)
-
 					serial_vec, list2 = self.find_serial_ori_1_local(chrom_vec)
 
 				else:
@@ -2129,11 +1463,6 @@ class _Base1(BaseEstimator):
 						# if chrom_id<22:
 						# 	continue
 						chrom_id1 = 'chr%s'%(chrom_id)
-
-						# if self.config['species_id']==0:
-						# 	filename2 = 'mm10_%d_%s_encoded1.h5'%(self.config['cell_type1'],chrom_id1)
-						# else:
-						# 	filename2 = '%s_%s_encoded1.h5'%(self.species_id,chrom_id1)
 						
 						filename2 = '%s_%s_encoded1.h5'%(self.species_id,chrom_id1)
 						with h5py.File(filename2,'r') as fid:
@@ -2180,13 +1509,6 @@ class _Base1(BaseEstimator):
 			# serial_vec = train_sel_list_ori[:,1]
 			serial_vec = np.asarray(train_sel_list_ori)
 			f_mtx = np.asarray(x_train1_trans)
-			# list1 = []
-			# for chrom_id in chrom_vec:
-			# 	b1 = np.where(train_sel_list_ori[:,0]==chrom_id)[0]
-			# 	list1.extend(b1)
-
-			# self.x_train1_trans = x_train1_trans
-			# self.train_sel_list_ori = train_sel_list_ori
 
 		return serial_vec, f_mtx
 
@@ -2382,166 +1704,6 @@ class _Base1(BaseEstimator):
 
 		return list_ID
 
-	def prep_data_2_1(self,file_path,file_prefix):
-
-		self.find_serial_ori(file_path,file_prefix)
-
-		chrom_vec = np.unique(self.chrom)
-		chrom_vec1 = []
-		for chrom_id in chrom_vec:
-			try:
-				id1 = chrom_id.find('chr')
-				if id1>=0:
-					chrom_id1 = int(chrom_id[3:])
-					chrom_vec1.append(chrom_id1)
-			except:
-				continue
-
-		chrom_vec1 = np.sort(chrom_vec1)
-		sample_num = len(self.chrom)
-		idx_sel_list = -np.ones((sample_num,2),dtype=np.int64)
-
-		for chrom_id in chrom_vec1:
-			chrom_id1 = 'chr%d'%(chrom_id)
-			b1 = np.where(self.chrom==chrom_id1)[0]
-			idx_sel_list[b1,0] = [chrom_id]*len(b1)
-			idx_sel_list[b1,1] = self.serial[b1]
-
-		id1 = idx_sel_list[:,0]>=0
-		idx_sel_list = idx_sel_list[id1]
-		sample_num = len(id1)
-		y = self.signal[id1]
-		x_mtx = idx_sel_list[id1]
-
-		seq_list = generate_sequences(idx_sel_list, gap_tol=5, region_list=[])
-		seq_len = seq_list[:,1]-seq_list[:,0]+1
-		thresh1 = 50
-		b1 = np.where(seq_len>thresh1)[0]
-		print(len(seq_list),len(b1))
-		seq_list = seq_list[b1]
-		seq_len1 = seq_list[:,1]-seq_list[:,0]+1
-		print(sample_num,np.sum(seq_len1),seq_list.shape,np.max(seq_len),np.min(seq_len),np.median(seq_len),np.max(seq_len1),np.min(seq_len1),np.median(seq_len1))
-		self.output_generate_sequences(idx_sel_list,seq_list)
-
-		t_mtx, signal_mtx, vec1_serial, vec1_local = sample_select2a1(x_mtx, y, idx_sel_list, seq_list, tol=self.tol, L=self.flanking)
-
-		t_serial = vec1_serial[:,self.flanking]
-		context_size = vec1_serial.shape[1]
-		id1 = mapping_Idx(idx_sel_list[:,1],t_serial)
-		b1 = np.where(id1>=0)[0]
-		if len(b1)!=len(vec1_serial):
-			print('error!',len(b1),len(vec1_serial))
-			return -1
-		sel_id1 = id1[b1]
-		# idx_sel_list1 = idx_sel_list[sel_id1]
-		# label1 = y[sel_id1]
-		t_chrom = idx_sel_list[sel_id1,0]
-		print(t_chrom,t_serial)
-		print(t_chrom.shape,t_serial.shape)
-		print(vec1_serial.shape)
-
-		list_ID = []
-		cnt1 = 0
-		interval = 5000
-		list1, list2 = [],[]
-		# region_unit_size = 5000
-		# list2 = np.zeros((interval,region_unit_size,4),dtype=np.int8)
-		for chrom_id in chrom_vec1:
-			# if chrom_id<22:
-			# 	continue
-			chrom_id1 = 'chr%s'%(chrom_id)
-			filename1 = '%s_%s_encoded1.h5'%(self.species_id,chrom_id1)
-			t_id1 = np.where(t_chrom==chrom_id)[0]
-			t_serial1 = t_serial[t_id1]	# serial by chromosome
-			sample_num1 = len(t_serial1)
-
-			num_segment = np.int(np.ceil(sample_num1/interval))
-			print(chrom_id1,num_segment,interval,sample_num1)
-
-			with h5py.File(filename1,'r') as fid:
-				serial1 = fid["serial"][:]
-				seq1 = fid["vec"][:]
-				serial1 = serial1[:,0]
-				print(serial1.shape, seq1.shape)
-				id1 = utility_1.mapping_Idx(serial1,t_serial1)
-				id2 = np.where(id1>=0)[0]
-				num1 = len(id2)
-				segment_id = 0
-				for i in range(num1):
-					cnt2 = i+1
-					t_id2 = id2[i]
-					label_serial = t_serial1[t_id2]
-					t_vec1_serial = vec1_serial[t_id1[t_id2]]
-					id_1 = mapping_Idx(serial1,t_vec1_serial)
-					b1 = np.where(id_1>=0)[0]
-					if len(b1)!=context_size:
-						b2 = np.where(id_1<0)[0]
-						print('error!',chrom_id1,label_serial,t_vec1_serial[b2],len(b1),context_size)
-						np.savetxt('temp1.txt',serial1,fmt='%d',delimiter='\t')
-						np.savetxt('temp2.txt',t_vec1_serial,fmt='%d',delimiter='\t')
-						return -1
-					# t_mtx = seq1[id_1[b1]]
-					list1.append(t_vec1_serial)
-					# list2.append(t_mtx)
-					list2.append(id_1)
-
-					# local_id = cnt2%interval
-					local_id = id_1
-					label_id = cnt1
-					# output_filename = 'test2_%s_%s_%d.h5'%(self.cell,chrom_id1,segment_id)
-					output_filename = filename1
-					if (cnt2%interval==0) or (cnt2==num1):
-						output_filename1 = '%s/%s'%(file_path,output_filename)
-						list1 = np.asarray(list1)
-						list2 = np.asarray(list2,dtype=np.int8)
-						print(chrom_id1,segment_id,local_id,label_id,label_serial,list1.shape,list2.shape)
-						print(label_id,chrom_id,label_serial,filename1,id_1)
-						print(t_vec1_serial)
-						# with h5py.File(output_filename1,'w') as fid:
-						# 	fid.create_dataset("serial", data=list1, compression="gzip")
-						# 	# fid.create_dataset("vec", data=list2, compression="gzip")
-						# 	fid.create_dataset("serial_1", data=list2, compression="gzip")
-						# dict1 = {'serial':list1.tolist(),'vec':list2.tolist()}
-						# np.save(output_filename,dict1,allow_pickle=True)
-						# with open(output_filename, "w") as fid: 
-						# 	json.dump(dict1,fid)
-						# with open(output_filename,"w",encoding='utf-8') as fid:
-						# 	json.dump(dict1,fid,separators=(',', ':'), sort_keys=True, indent=4)
-						list1, list2 = [], []
-						segment_id += 1
-
-					cnt1 = cnt1+1
-					# list_ID.append([label_id,label_serial,output_filename,local_id])
-					# list_ID.append([label_id,chrom_id,label_serial,t_vec1_serial,filename1,id_1])
-					list_ID.append([label_id,chrom_id,label_serial,filename1,id_1])
-					# if cnt2%interval==0:
-					# 	break
-
-		# with open(output_filename, "r") as fid: 
-		# 	dict1 = json.load(fid)
-		# 	serial1, vec1 = np.asarray(dict1['serial']), np.asarray(dict1['vec'])
-		# 	print(serial1.shape,vec1.shape)
-		
-		# with h5py.File(output_filename1,'r') as fid:
-		# 	serial1 = fid["serial"][:]
-		# 	vec1 = fid["vec"][:]
-		# 	print(serial1.shape,vec1.shape)
-			
-		# fields = ['label_id','chrom','serial','filename','local_id']
-		# list_ID = np.asarray(list_ID)
-		# data1 = pd.DataFrame(columns=fields,data=list_ID)
-		output_filename = '%s/test2_%s_label_ID'%(file_path,self.cell)
-		# data1.to_csv(output_filename+'.txt',index=False,sep='\t')
-		# np.save(output_filename,list_ID,allow_pickle=True)
-		output_filename = '%s/test2_%s_label_ID.h5'%(file_path,self.cell)
-		with h5py.File(output_filename1,'w') as fid:
-			fid.create_dataset("label", data=list_ID, compression="gzip")
-			fid.create_dataset("serial", data=list1, compression="gzip")
-			# fid.create_dataset("vec", data=list2, compression="gzip")
-			# fid.create_dataset("serial_1", data=list2, compression="gzip")
-
-		return list_ID
-
 	# find serial for training and validation data
 	def prep_data_2_sub1(self,file_path,file_prefix,type_id1=0,type_id2=0,gap_tol=5,seq_len_thresh=5,select_config={}):
 
@@ -2679,8 +1841,6 @@ class _Base1(BaseEstimator):
 			# list2 = np.zeros((interval,region_unit_size,4),dtype=np.int8)
 
 			if self.config['species_id']==0:
-				# mm10_1_chr19_encoded1.h5
-				# filename1 = 'mm10_%d_%s_encoded1.h5'%(self.config['cell_type1'],chrom_id1)
 				serial_vec, f_mtx = self.find_serial_ori_1_local(chrom_vec)
 
 			else:
@@ -2727,17 +1887,6 @@ class _Base1(BaseEstimator):
 				assert len(serial_vec )==f_mtx.shape[0]
 				print(serial_vec[0:5])
 
-				# score_vec = []
-				# for key1 in ['train','valid','test']:
-				# 	temp1 = '%s_predict'%(key1)
-				# 	temp2 = '%s_score'%(key1)
-				# 	y_predicted = fid[temp1][:]
-				# 	t_score1 = fid[temp2][:]
-				# 	y_predicted_1 = y_predicted[:,flanking]
-				# 	list2.extend(y_predicted_1)
-				# 	score_vec.append(t_score1)
-				# 	print(t_score1)
-
 		return serial_vec, f_mtx
 
 	# find serial
@@ -2776,8 +1925,6 @@ class _Base1(BaseEstimator):
 	# load training and validation data
 	def prep_data_2_sub2(self,type_id1=0,keys=['train','valid'],stride=1,type_id=0,select_config={}):
 
-		# keys = ['train','valid','test']
-		# key1 = keys[0]
 		chrom1 = []
 		for i in range(0,len(keys)):
 			key1 = keys[i]
@@ -2837,240 +1984,20 @@ class _Base1(BaseEstimator):
 
 		return True
 
-	def control_pre_test1(self,path1,file_prefix):
-
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		config = self.config.copy()
-		# units1=[50,50,50,50,1,25,25,1]
-		# units1=[50,50,50,25,50,25,0,0]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		units1=[50,50,32,25,50,25,0,0]
-		# units1=[50,50,50,25,50,25,0,0]
-		config['feature_dim_vec'] = units1[2:]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# units1=[50,50,50,25,50,0,0,0]
-		units1=[50,50,32,25,50,0,0,0]
-		config['feature_dim_vec_basic'] = units1[2:]
-		print('get_model2a1_attention_1_2_2_sample2')
-		flanking = 50
-		context_size = 2*flanking+1
-		n_step_local_ori = 5000
-		region_unit_size = 1
-		feature_dim = 4
-		# model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-
-		# conv_1 = [n_filters, kernel_size1, regularizer2, dilation_rate1, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1 = []
-		regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-		n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 64, 20, 10, 1, 1, 1, 0.2, 1
-		conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1.append(conv_1)
-
-		n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 5, 1, 1, 4, 4, 0.2, 1
-		conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1.append(conv_1)
-
-		n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 5, 1, 1, 5, 5, 0.2, 1
-		conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1.append(conv_1)
-		config['local_conv_list1'] = local_conv_list1
-		print(local_conv_list1)
-
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
-		feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 32, 25, True, 0, 0
-		n_step_local1 = 15
-		feature_dim3 = []
-		local_vec_1 = [feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local]
-		attention2_local = 0
-		config.update({'feature_dim':feature_dim})
-		select2 = 1
-		config.update({'attention1':0,'attention2':1,'select2':select2,'context_size':context_size,'n_step_local':n_step_local1,'n_step_local_ori':n_step_local_ori})
-		config.update({'local_vec_1':local_vec_1,'attention2_local':attention2_local})
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 1
-		BATCH_SIZE = 32
-		n_step_local = n_step_local_ori
-
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False)
-
-		num_sample1 = 1
-		interval = 20000
-		select_num = np.int(np.ceil(train_num1/interval))
-		# select_num1 = select_num*interval
-		# print(num_sample1,select_num,interval,select_num1)
-		if select_num>1:
-			t1 = np.arange(0,train_num1,interval)
-			pos = np.vstack((t1,t1+interval)).T
-			pos[-1][1] = train_num1
-			print(train_num1,select_num,interval)
-			print(pos)
-		else:
-			pos = [[0,train_num1]]
-
-		start2 = time.time()
-		train_id_1 = np.arange(train_num1)
-		valid_id_1 = np.arange(valid_num1)
-		np.random.shuffle(valid_id_1)
-		cnt1 = 0
-		mse1 = 1e5
-		decay_rate = 0.95
-		decay_step = 1
-		init_lr = self.config['lr']
-
-		for i1 in range(50):
-
-			self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			np.random.shuffle(train_id_1)
-			
-			start1 = time.time()
-
-			valid_num2 = 3600
-			num2 = np.min([valid_num1,valid_num2])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-
-			for l in range(select_num):
-				s1, s2 = pos[l]
-				print(l,s1,s2)
-				sel_id = train_id_1[s1:s2]
-
-				x_train = mtx_train[vec_local_train[sel_id]]
-				y_train = y_train_ori[sel_id]
-
-				x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-				print(x_train.shape,y_train.shape)
-				n_epochs = 1
-
-				train_num = x_train.shape[0]
-				print('x_train, y_train', x_train.shape, y_train.shape)
-				print('x_valid, y_valid', x_valid1.shape, y_valid1.shape)
-				
-				# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-				model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid1,y_valid1],
-									callbacks=[earlystop,checkpointer])
-				
-				# model.load_weights(MODEL_PATH)
-				model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-				model.save(model_path2)
-				# model_path2 = MODEL_PATH
-				# if i%5==0:
-				# 	print('loading weights... ', MODEL_PATH)
-				# 	model.load_weights(MODEL_PATH) # load model with the minimum training error
-				# 	y_predicted_valid1 = model.predict(x_valid)
-				# 	y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-				# 	temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-				# 	print(temp1)
-
-				print('loading weights... ', model_path2)
-				model.load_weights(model_path2) # load model with the minimum training error
-
-			print('loading weights... ', model_path2)
-			model.load_weights(model_path2) # load model with the minimum training error
-
-			y_predicted_valid1 = model.predict(x_valid)
-			y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-			temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-			print([i1,l]+list(temp1))
-			t_mse1 = temp1[0]
-
-			if np.abs(t_mse1-mse1)<self.min_delta:
-				cnt1 += 1
-			else:
-				cnt1 = 0
-
-			if t_mse1 < mse1:
-				mse1 = t_mse1
-
-			if cnt1>=self.step:
-				break
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		print('loading weights... ', MODEL_PATH)
-		model.load_weights(MODEL_PATH) # load model with the minimum training error
-		y_predicted_valid1 = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-		temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-		print(temp1)
-
-		return model
-
 	# training and predition with sequences
 	def control_pre_test1_repeat(self,path1,file_prefix,run_id_load=-1):
 
 		self.prep_data_2_sub1(path1,file_prefix)
 
 		config = self.config.copy()
-		# units1=[50,50,50,50,1,25,25,1]
-		# units1=[50,50,50,25,50,25,0,0]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
 		units1=[50,50,32,25,50,25,0,0]
-		# units1=[50,50,50,25,50,25,0,0]
-		# config['feature_dim_vec'] = units1[2:]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# units1=[50,50,50,25,50,0,0,0]
-		# units2=[50,50,32,25,50,0,0,0]
-		# config['feature_dim_vec_basic'] = units1[2:]
-		print('get_model2a1_attention_1_2_2_sample2')
 		flanking = 50
 		context_size = 2*flanking+1
 		n_step_local_ori = 5000
 		region_unit_size = 1
 		feature_dim = 4
-		# model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-
-		# conv_1 = [n_filters, kernel_size1, regularizer2, dilation_rate1, bnorm, activation, pool_length1, stride1, drop_out_rate]
 		local_conv_list1 = []
 		regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 64, 20, 10, 1, 1, 1, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 5, 1, 1, 4, 4, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 5, 1, 1, 5, 5, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-		# config['local_conv_list1'] = local_conv_list1
-		# print(local_conv_list1)
 
 		if self.run_id==110001:
 			config_vec1 = [[64, 15, 5, 1, 2, 2, 0.2, 0],
@@ -3085,10 +2012,6 @@ class _Base1(BaseEstimator):
 		config['local_conv_list1'] = local_conv_list1
 		print(local_conv_list1)
 
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
 		feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 32, 25, True, 0, 0
 		n_step_local1 = 10
 		feature_dim3 = []
@@ -3111,11 +2034,6 @@ class _Base1(BaseEstimator):
 		config.update({'feature_dim':feature_dim,'output_dim':hidden_unit,'regularizer2_2':regularizer2_2})
 
 		model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
 
 		# find feature vectors with the serial
 		self.x = dict()
@@ -3135,7 +2053,6 @@ class _Base1(BaseEstimator):
 		x_valid = mtx_valid[vec_local_valid]
 		y_valid = y_valid_ori
 
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
 		print(x_valid.shape,y_valid.shape)
 
 		type_id2 = 2
@@ -3322,12 +2239,6 @@ class _Base1(BaseEstimator):
 							[25, kernel_size2, 1, 64, 1, 1, 0.2, 0]]
 
 		elif sel_conv_id==5:
-			# run_id: 510201
-			# config_vec1 = [[128, 15, 5, 1, 2, 2, 0.2, 0],
-			# 				[50, 5, 1, 1, 10, 5, 0.2, 0],
-			# 				[50, 3, 1, 1, 10, 5, 0.2, 0],
-			# 				[50, 3, 1, 1, 5, 5, 0.2, 0]]
-			# run_id: 510601
 			config_vec1 = [[128, 15, 5, 1, 2, 2, 0.2, 0],
 							[50, 5, 1, 1, 10, 10, 0.2, 0],
 							[50, 3, 1, 1, 10, 10, 0.2, 0],
@@ -3341,12 +2252,6 @@ class _Base1(BaseEstimator):
 							[25, kernel_size2, 1, 32, 1, 1, 0.2, 0]]
 
 		elif sel_conv_id==6:
-			# run_id: 510301
-			# config_vec1 = [[128, 15, 5, 1, 2, 2, 0.2, 0],
-			# 				[50, 5, 1, 1, 10, 10, 0.2, 0],
-			# 				[50, 3, 1, 1, 10, 10, 0.2, 0],
-			# 				[50, 3, 1, 1, 5, 5, 0.2, 0]]
-			# run_id: 510701
 			config_vec1 = [[128, 15, 5, 1, 2, 2, 0.2, 0],
 							[50, 5, 1, 1, 10, 10, 0.2, 0],
 							[50, 3, 1, 1, 10, 10, 0.2, 0],
@@ -3361,7 +2266,6 @@ class _Base1(BaseEstimator):
 							[25, kernel_size2, 1, 64, 1, 1, 0.2, 0]]
 
 		elif sel_conv_id==7:
-			# run_id: 510801
 			config_vec1 = [[128, 15, 10, 1, 2, 2, 0.2, 0],
 							[50, 5, 1, 1, 10, 10, 0.2, 0],
 							[50, 3, 1, 1, 5, 5, 0.2, 0],
@@ -3375,7 +2279,6 @@ class _Base1(BaseEstimator):
 							[25, kernel_size2, 1, 32, 1, 1, 0.2, 0]]
 
 		else:
-			# run_id: 100031
 			config_vec1 = [[64, 15, 5, 1, 2, 2, 0.2, 0],
 							[32, 5, 1, 1, 10, 10, 0.2, 0],
 							[32, 3, 1, 1, 10, 10, 0.2, 0],
@@ -3389,321 +2292,7 @@ class _Base1(BaseEstimator):
 
 		return config_vec1, config_vec2
 
-	# dilated convolution with sequences
-	def control_pre_test1_1(self,path1,file_prefix,run_id_load=-1,load_config=0,config_filename=''):
-
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		config = self.config.copy()
-		# units1=[50,50,50,50,1,25,25,1]
-		# units1=[50,50,50,25,50,25,0,0]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		units1=[50,50,32,25,50,25,0,0]
-		# units1=[50,50,50,25,50,25,0,0]
-		# units2=[50,50,50,25,50,0,0,0]
-		config['feature_dim_vec'] = units1[2:]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# units1=[50,50,50,25,50,0,0,0]
-		units1=[50,50,32,25,50,0,0,0]
-		config['feature_dim_vec_basic'] = units1[2:]
-		print('get_model2a1_attention_1_2_2_sample6')
-		flanking = 50
-		context_size = 2*flanking+1
-		n_step_local_ori = 5000
-		region_unit_size = 1
-		feature_dim = 4
-		config.update({'feature_dim':feature_dim,'n_step_local_ori':n_step_local_ori,'context_size':context_size})
-
-		# model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-		# conv_1 = [n_filters, kernel_size1, regularizer2, dilation_rate1, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1 = []
-		regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-		# CNN: 10*2,10,5,5
-		# run_id: 100001
-		sel_conv_id = self.config['sel_conv_id']
-		if 'dilated_conv_kernel_size2' in self.config:
-			kernel_size2 = self.config['dilated_conv_kernel_size2']
-		else:
-			kernel_size2 = 3
-		config_vec1, config_vec2 = self.config_pre_3(sel_conv_id,kernel_size2=kernel_size2)
-		
-		for t1 in config_vec1:
-			n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = t1
-			conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-			local_conv_list1.append(conv_1)
-
-		config['local_conv_list1'] = local_conv_list1
-		print(local_conv_list1)
-
-		local_conv_list2 = []
-		regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-
-		config_vec2_1 = [[64, 20, 10, 1, 1, 1, 0.2, 0],
-						[32, 5, 1, 2, 4, 4, 0.2, 0],
-						[32, 5, 1, 2, 4, 4, 0.2, 0],
-						[32, 5, 1, 8, 5, 5, 0.2, 0],
-						[32, 5, 1, 16, 5, 5, 0.2, 0],
-						[32, 5, 1, 32, 5, 5, 0.2, 0]]
-
-		for t1 in config_vec2:
-			n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = t1
-			conv_2 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-			local_conv_list2.append(conv_2)
-
-		config['local_conv_list2'] = local_conv_list2
-		print(local_conv_list2)
-
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 32, 25, True, 0, 0
-		# n_step_local1 = 15
-		# local_vec_1 = [feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local]
-		# attention2_local = 0
-		# config.update({'feature_dim':feature_dim})
-		# select2 = 1
-		# config.update({'attention1':0,'attention2':1,'select2':select2,'context_size':context_size,'n_step_local':n_step_local1,'n_step_local_ori':n_step_local_ori})
-		# config.update({'local_vec_1':local_vec_1,'attention2_local':attention2_local})
-
-		if load_config>0:
-			if os.path.exists(config_filename)==True:
-				config = np.load(config_filename,allow_pickle=True)
-				config = config[()]
-			else:
-				print('file does not exist',config_filename)
-				return -1
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample6(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		if load_config==0:
-			config_filename = 'config_%d.npy'%(self.run_id)
-			np.save(config_filename,config,allow_pickle=True)
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		epoch_id, local_id = 0, 0
-		if self.train==2:
-			model_path1 = self.config['model_path1']
-			epoch_id, local_id = self.config['train_pre_epoch']
-			print('loading weights...', model_path1)
-			model.load_weights(model_path1)
-
-			# return -1
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)	# type_id1=0, load sequences
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 50
-		# BATCH_SIZE = 32
-		BATCH_SIZE = 16
-		n_step_local = n_step_local_ori
-
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False)
-
-		num_sample1 = 1
-		interval = self.config['interval']
-		select_num = np.int(np.ceil(train_num1/interval))
-		# select_num1 = select_num*interval
-		# print(num_sample1,select_num,interval,select_num1)
-		if select_num>1:
-			t1 = np.arange(0,train_num1,interval)
-			pos = np.vstack((t1,t1+interval)).T
-			pos[-1][1] = train_num1
-			print(train_num1,select_num,interval)
-			print(pos)
-		else:
-			pos = [[0,train_num1]]
-
-		start2 = time.time()
-		train_id_1 = np.arange(train_num1)
-		valid_id_1 = np.arange(valid_num1)
-		np.random.shuffle(valid_id_1)
-		cnt1 = 0
-		mse1 = 1e5
-		decay_rate = 0.95
-		decay_step = 5
-		init_lr = self.config['lr']
-		if 'n_epochs' in self.config:
-			n_epochs_1 = self.config['n_epochs']
-		else:
-			n_epochs_1 = 50
-
-		for i1 in range(50):
-
-			# self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			# np.random.shuffle(train_id_1)
-
-			# if i1<epoch_id:
-			# 	continue
-
-			if i1>0:
-				lr = init_lr*((decay_rate)**(int(i1/decay_step)))
-				K.set_value(model.optimizer.learning_rate, lr)
-
-			np.random.shuffle(train_id_1)
-			if i1<epoch_id:
-				continue
-			
-			start1 = time.time()
-
-			valid_num2 = 2500
-			# valid_num2 = 5000
-			num2 = np.min([valid_num1,valid_num2])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-
-			for l in range(select_num):
-
-				if (i1<=epoch_id) and (l<local_id):
-					continue
-
-				s1, s2 = pos[l]
-				print(l,s1,s2)
-				sel_id = train_id_1[s1:s2]
-
-				x_train = mtx_train[vec_local_train[sel_id]]
-				y_train = y_train_ori[sel_id]
-
-				x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-				print(x_train.shape,y_train.shape)
-				n_epochs = 1
-
-				train_num = x_train.shape[0]
-				print('x_train, y_train', x_train.shape, y_train.shape)
-				print('x_valid, y_valid', x_valid1.shape, y_valid1.shape)
-				
-				# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-				model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid1,y_valid1],
-									callbacks=[earlystop,checkpointer])
-				
-				# model.load_weights(MODEL_PATH)
-				# model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-				# model.save(model_path2)
-				# model_path2 = MODEL_PATH
-
-				model_path2 = '%s/vbak3/model_%d_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1,l)
-				model.save(model_path2)
-				
-				if l%10==0:
-					# model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-					# model.save(model_path2)
-
-					print('loading weights... ', MODEL_PATH)
-					model.load_weights(MODEL_PATH) # load model with the minimum training error
-					y_predicted_valid1 = model.predict(x_valid)
-					y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					print(temp1)
-
-					print('loading weights... ', model_path2)
-					model.load_weights(model_path2) # load model with the minimum training error
-
-			# model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-			# model.save(model_path2)
-
-			# print('loading weights... ', model_path2)
-			# model.load_weights(model_path2) # load model with the minimum training error
-
-			y_predicted_valid1 = model.predict(x_valid)
-			y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-			temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-			print([i1,l]+list(temp1))
-			t_mse1 = temp1[0]
-
-			# if np.abs(t_mse1-mse1)<self.min_delta:
-			# 	cnt1 += 1
-			# elif t_mse1-mse1>self.min_delta:
-			# 	cnt1 += 1
-			# else:
-			# 	cnt1 = 0
-
-			if t_mse1-mse1< -self.min_delta:
-				cnt1 = 0
-			else:
-				cnt1 += 1
-
-			if t_mse1 < mse1:
-				mse1 = t_mse1
-
-			if cnt1>=self.step:
-				break
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		print('loading weights... ', MODEL_PATH)
-		model.load_weights(MODEL_PATH) # load model with the minimum training error
-		y_predicted_valid1 = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-		temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-		print(temp1)
-
-		self.config.update({'model_path1':MODEL_PATH})
-
-		return model
-
-	# prediction
-	def control_pre_test1_1_predict(self,path1,file_prefix,run_id_load=-1):
-		
-		if run_id_load<0:
-			run_id_load = self.run_id
-
-		config_filename = 'config_%d.npy'%(run_id_load)
-		if os.path.exists(config_filename)==True:
-			config = np.load(config_filename,allow_pickle=True)
-			config = config[()]
-		else:
-			print('file does not exist',config_filename)
-			return -1
-
-		self.x = dict()
-		self.idx = dict()
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample6(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-		
-		model_path1 = self.config['model_path1']
-		# epoch_id, local_id = self.config['train_pre_epoch']
-		print('loading weights...', model_path1)
-		model.load_weights(model_path1)
-		self.model = model
-
-		y_predicted_test, y_test, idx_sel_list_test, predicted_attention_test, score_vec1, score_dict1 = self.test_pre_1(type_id1=0,est_attention=0)
-
-		output_filename = 'test_%d_%d'%(self.run_id,run_id_load)
-		self.output_predict_1(idx_sel_list_test, y_predicted_test, y_test, predicted_attention_test, 
-							score_vec1, score_dict1, output_filename)
-
-		return True
-
-	# dilated convolution with sequence features
+	# dilated convolution with sequence features (compared methods)
 	def control_pre_test1_2(self,path1,file_prefix,model_path1=''):
 
 		self.file_path, self.file_prefix = path1, file_prefix
@@ -3827,132 +2416,7 @@ class _Base1(BaseEstimator):
 
 		return model
 
-	# dilated convolution with sequence features
-	def control_pre_test1_2_repeat(self,path1,file_prefix,model_path1=''):
-
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=1,keys=['train','valid'],stride=1)
-
-		config = self.config.copy()
-		# units1=[50,50,50,50,1,25,25,1]
-		# units1=[50,50,50,25,50,25,0,0]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		units1=[50,50,50,25,50,25,0,0]
-		# config['feature_dim_vec'] = units1[2:]
-		# # n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# config['feature_dim_vec_basic'] = units1[2:]
-		regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-
-		config['attention1']=0
-		config['attention2']=1
-		config['select2']=1
-		print('get_model2a1_attention_1_2_2_sample6_1')
-		context_size = 2*self.flanking+1
-		config['context_size'] = context_size
-		config['feature_dim'] = self.x['train'].shape[-1]
-
-		sel_conv_id = self.config['sel_conv_id']
-		if 'dilated_conv_kernel_size2' in self.config:
-			kernel_size2 = self.config['dilated_conv_kernel_size2']
-		else:
-			kernel_size2 = 3
-		config_vec1, config_vec2 = self.config_pre_3(sel_conv_id,kernel_size2=kernel_size2)
-		print(config_vec1)
-		print(config_vec2)
-		
-		# model = utility_1.get_model2a1_word()
-
-		local_conv_list1, local_conv_list2 = [], []
-		for t1 in config_vec2:
-			n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = t1
-			conv_2 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-			local_conv_list2.append(conv_2)
-
-		config['local_conv_list1'] = local_conv_list1
-		config['local_conv_list2'] = local_conv_list2
-		print(local_conv_list2)
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample6_1(context_size,config)
-		# return -1
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = mtx_train.shape[0], mtx_valid.shape[0]
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_train = np.asarray(mtx_train[vec_local_train])
-		y_train = np.asarray(y_train_ori)
-
-		x_valid = np.asarray(mtx_valid[vec_local_valid])
-		y_valid = np.asarray(y_valid_ori)
-
-		print(x_train.shape,y_train.shape)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		file_path_1 = 'mouse_pred1'
-		MODEL_PATH = '%s/test%d.h5'%(file_path_1,self.run_id)
-		n_epochs = 100
-		# BATCH_SIZE = 64
-		BATCH_SIZE = 512
-
-		start1 = time.time()
-		if self.train==1:
-			print('x_train, y_train', x_train.shape, y_train.shape)
-			earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=0, mode='auto')
-			checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False)
-			# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-			model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
-							callbacks=[earlystop,checkpointer])
-			# model.load_weights(MODEL_PATH)
-			model_path2 = '%s/model_%d_%d_%d.h5'%(file_path_1,self.run_id,type_id2,context_size)
-			model.save(model_path2)
-			model_path2 = MODEL_PATH
-			print('loading weights... ', model_path2)
-			model.load_weights(model_path2) # load model with the minimum training error
-		else:
-			# model_path1 = './mnt/yy3/test_29200.h5'
-			if model_path1!="":
-				MODEL_PATH = model_path1
-			print('loading weights... ', MODEL_PATH)
-			model.load_weights(MODEL_PATH)
-
-		self.model = model
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		y_predicted_valid = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid[:,self.flanking])
-		valid_score_1 = score_2a(np.ravel(y_valid[:,self.flanking]), y_predicted_valid)
-		print(valid_score_1)
-
-		type_id1=1
-		type_id=1
-		interval=5000
-		y_predicted_test, y_test, idx_sel_list_test, predicted_attention_test, score_vec1, score_dict1 = self.test_pre_1(type_id1=type_id1,type_id=type_id,
-																												est_attention=0,select_config={},interval=interval)
-
-		output_filename = '%s/test_%d_%d'%(file_path_1,self.run_id,self.run_id)
-		self.output_predict_1(idx_sel_list_test, y_predicted_test, y_test, predicted_attention_test, 
-							score_vec1, score_dict1, output_filename, valid_score=valid_score_1)
-
-		return model
-
-	# prediction
+	# prediction (compared methods)
 	def control_pre_test1_2_predict(self,path1,file_prefix,run_id_load=-1):
 		
 		if run_id_load<0:
@@ -3993,7 +2457,6 @@ class _Base1(BaseEstimator):
 	def control_pre_test1_3(self,path1,file_prefix,run_id_load=-1):
 
 		self.prep_data_2_sub1(path1,file_prefix)
-
 		self.x = dict()
 		self.idx = dict()
 
@@ -4025,255 +2488,7 @@ class _Base1(BaseEstimator):
 				np.save(config_filename,config,allow_pickle=True)
 
 		print('get_model2a1_convolution')
-		# CNN: 10*2,10,5,5
-		# run_id: 100001
-			
-		# model = utility_1.get_model2a1_attention_1_2_2_sample6(config)
 		model = utility_1.get_model2a1_convolution(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		# find feature vectors with the serial
-		if self.config['predict_test']==1:
-			if self.train==1:
-				self.prep_data_2_sub2(type_id1=0,keys=['train','valid','test'],stride=1)
-			else:
-				self.prep_data_2_sub2(type_id1=0,keys=['test'],stride=1)
-		else:
-			self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)	# type_id1=0, load sequences
-
-		if self.train==1:
-
-			# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-			# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-			mtx_train = self.x['train']
-			idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-			mtx_valid = self.x['valid']
-			idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-			train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-			print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-			print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-			# x_valid = mtx_valid[vec_local_valid]
-			x_valid = mtx_valid
-			y_valid = y_valid_ori_1
-
-			# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-			print(x_valid.shape,y_valid.shape)
-
-			type_id2 = 2
-			MODEL_PATH = 'test%d.h5'%(self.run_id)
-			n_epochs = 50
-			BATCH_SIZE = 256
-			n_step_local = n_step_local_ori
-
-			earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-			checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False)
-
-			num_sample1 = 1
-			interval = self.config['interval']
-			select_num = np.int(np.ceil(train_num1/interval))
-			# select_num1 = select_num*interval
-			# print(num_sample1,select_num,interval,select_num1)
-			select_num = 1
-			if select_num>1:
-				t1 = np.arange(0,train_num1,interval)
-				pos = np.vstack((t1,t1+interval)).T
-				pos[-1][1] = train_num1
-				print(train_num1,select_num,interval)
-				print(pos)
-			else:
-				pos = [[0,train_num1]]
-
-			start2 = time.time()
-			train_id_1 = np.arange(train_num1)
-			valid_id_1 = np.arange(valid_num1)
-			np.random.shuffle(valid_id_1)
-			cnt1 = 0
-			mse1 = 1e5
-			decay_rate = 0.95
-			decay_step = 1
-			init_lr = self.config['lr']
-			if 'n_epochs' in self.config:
-				n_epochs = self.config['n_epochs']
-			else:
-				n_epochs = 100
-
-			for i1 in range(1):
-
-				self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-				np.random.shuffle(train_id_1)
-				
-				start1 = time.time()
-
-				# valid_num2 = 20000
-				# num2 = np.min([valid_num1,valid_num2])
-				# valid_id2 = valid_id_1[0:num2]
-				valid_id2 = valid_id_1
-				x_valid, y_valid = x_valid[valid_id2], y_valid[valid_id2]
-
-				for l in range(select_num):
-					s1, s2 = pos[l]
-					print(l,s1,s2)
-					sel_id = train_id_1[s1:s2]
-
-					# x_train = mtx_train[vec_local_train[sel_id]]
-					x_train = mtx_train[sel_id]
-					y_train = y_train_ori_1[sel_id]
-
-					x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-					print(x_train.shape,y_train.shape)
-					# n_epochs = 1
-
-					train_num = x_train.shape[0]
-					print('x_train, y_train', x_train.shape, y_train.shape)
-					print('x_valid, y_valid', x_valid.shape, y_valid.shape)
-					
-					# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-					model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
-										callbacks=[earlystop,checkpointer])
-					
-					# model.load_weights(MODEL_PATH)
-					# model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-					# model.save(model_path2)
-					# model_path2 = MODEL_PATH
-					# if l%20==0:
-					# 	model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-					# 	model.save(model_path2)
-
-					# 	print('loading weights... ', MODEL_PATH)
-					# 	model.load_weights(MODEL_PATH) # load model with the minimum training error
-					# 	y_predicted_valid1 = model.predict(x_valid)
-					# 	y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					# 	temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					# 	print(temp1)
-
-					# 	print('loading weights... ', model_path2)
-					# 	model.load_weights(model_path2) # load model with the minimum training error
-
-				# model_path2 = '%s/vbak3/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-				# model.save(model_path2)
-
-				# print('loading weights... ', model_path2)
-				# model.load_weights(model_path2) # load model with the minimum training error
-
-				# y_predicted_valid1 = model.predict(x_valid)
-				# y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-				# temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-				# print([i1,l]+list(temp1))
-				# t_mse1 = temp1[0]
-
-				# if t_mse1-mse1< -self.min_delta:
-				# 	cnt1 = 0
-				# else:
-				# 	cnt1 += 1
-
-				# if t_mse1 < mse1:
-				# 	mse1 = t_mse1
-
-				# if cnt1>=self.step:
-				# 	break
-
-			stop1 = time.time()
-			print(stop1-start1)
-
-			self.config.update({'model_path1':MODEL_PATH})
-
-		else:
-			file_path_1 = 'mouse_pred1'
-			self.config['model_path1'] = '%s/test%d.h5'%(file_path_1,self.run_id)
-			MODEL_PATH = self.config['model_path1']
-			print('loading weights... ', MODEL_PATH)
-			model.load_weights(MODEL_PATH) # load model with the minimum training error
-
-		flag = 0
-		valid_score_1 = []
-		if self.config['predict_valid']==1:
-			if self.train==1:
-				print('loading weights... ', MODEL_PATH)
-				model.load_weights(MODEL_PATH) # load model with the minimum training error
-				flag = 1
-			else:
-				self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)	# type_id1=0, load sequences
-				x_valid = self.x['valid']
-				idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-			y_predicted_valid = model.predict(x_valid)
-			print(y_valid_ori_1.shape,y_predicted_valid.shape)
-			valid_score_1 = score_2a(np.ravel(y_valid_ori_1), np.ravel(y_predicted_valid))
-			print(valid_score_1)
-
-		if self.config['predict_test']==1:
-			# load serial and feature vectors
-			# type_id1 = 0
-			# self.prep_data_2_sub2(type_id1=type_id1,keys=['test'],stride=1,type_id=0,select_config=config)
-
-			key1 = 'test'
-			x_test = self.x[key1]
-			idx_sel_list_test, y_ori, y, vec_serial, vec_local = self.local_serial_dict[key1]
-
-			if flag==0:
-				print('loading weights... ', MODEL_PATH)
-				model.load_weights(MODEL_PATH) # load model with the minimum training error
-
-			y_predicted_test = model.predict(x_test,batch_size=16)
-			y_test = y_ori
-			score_vec1, score_dict1 = self.score_1(y_test,y_predicted_test,idx_sel_list_test,type_id=1)
-
-			# output_filename = '%s/test_%d_%d'%(file_path_1,self.run_id,run_id_load)
-			output_filename = 'test_%d_%d'%(self.run_id,run_id_load)
-			predicted_attention_test = []
-			self.output_predict_1(idx_sel_list_test, y_predicted_test, y_test, predicted_attention_test, 
-								score_vec1, score_dict1, output_filename, valid_score=valid_score_1)
-
-		return model
-
-	# convolution with sequences
-	def control_pre_test1_3_repeat(self,path1,file_prefix,run_id_load=-1):
-
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		self.x = dict()
-		self.idx = dict()
-
-		flanking = 50
-		context_size = 2*flanking+1
-		n_step_local_ori = 5000
-		region_unit_size = 1
-		feature_dim = 4
-		self.config.update({'feature_dim':feature_dim,'n_step_local_ori':n_step_local_ori,'context_size':context_size})
-
-		config_filename = 'config_%d.npy'%(self.run_id)
-		flag1 = (os.path.exists(config_filename)==True)
-		sel_conv_id = self.config['sel_conv_id']
-		if self.train==0:
-			if flag1==1:
-				config = np.load(config_filename,allow_pickle=True)
-				config = config[()]
-			else:
-				print('config file does not exist', config_filename)
-				return -1
-		else:
-			# sel_conv_id = self.config['sel_conv_id']
-			if flag1==1:
-				print('previous config file exists', config_filename)
-				config = np.load(config_filename,allow_pickle=True)
-				config = config[()]
-			else:
-				config = self.config_pre_1_1(sel_conv_id)
-				np.save(config_filename,config,allow_pickle=True)
-
-		print('get_model2a1_convolution')
-		# CNN: 10*2,10,5,5
-		# run_id: 100001
-			
-		# model = utility_1.get_model2a1_attention_1_2_2_sample6(config)
-		model = utility_1.get_model2a1_convolution(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
 
 		# find feature vectors with the serial
 		if self.config['predict_test']==1:
@@ -4286,10 +2501,6 @@ class _Base1(BaseEstimator):
 
 		file_path_1 = 'mouse_pred1'
 		if self.train==1:
-
-			# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-			# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
 			mtx_train = self.x['train']
 			idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
 
@@ -4305,7 +2516,7 @@ class _Base1(BaseEstimator):
 			y_valid = y_valid_ori_1
 
 			# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-			print(x_valid.shape,y_valid.shape)
+			# print(x_valid.shape,y_valid.shape)
 
 			type_id2 = 2
 			MODEL_PATH = '%s/test%d.h5'%(file_path_1,self.run_id)
@@ -4351,74 +2562,26 @@ class _Base1(BaseEstimator):
 				np.random.shuffle(train_id_1)
 				
 				start1 = time.time()
-
-				# valid_num2 = 20000
-				# num2 = np.min([valid_num1,valid_num2])
-				# valid_id2 = valid_id_1[0:num2]
 				valid_id2 = valid_id_1
 				x_valid, y_valid = x_valid[valid_id2], y_valid[valid_id2]
 
 				for l in range(select_num):
 					s1, s2 = pos[l]
-					print(l,s1,s2)
+					# print(l,s1,s2)
 					sel_id = train_id_1[s1:s2]
 
-					# x_train = mtx_train[vec_local_train[sel_id]]
 					x_train = mtx_train[sel_id]
 					y_train = y_train_ori_1[sel_id]
 
 					x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-					print(x_train.shape,y_train.shape)
-					# n_epochs = 1
+					# print(x_train.shape,y_train.shape)
 
 					train_num = x_train.shape[0]
 					print('x_train, y_train', x_train.shape, y_train.shape)
 					print('x_valid, y_valid', x_valid.shape, y_valid.shape)
 					
-					# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
 					model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
 										callbacks=[earlystop,checkpointer])
-					
-					# model.load_weights(MODEL_PATH)
-					# model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-					# model.save(model_path2)
-					# model_path2 = MODEL_PATH
-					# if l%20==0:
-					# 	model_path2 = '%s/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-					# 	model.save(model_path2)
-
-					# 	print('loading weights... ', MODEL_PATH)
-					# 	model.load_weights(MODEL_PATH) # load model with the minimum training error
-					# 	y_predicted_valid1 = model.predict(x_valid)
-					# 	y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					# 	temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					# 	print(temp1)
-
-					# 	print('loading weights... ', model_path2)
-					# 	model.load_weights(model_path2) # load model with the minimum training error
-
-				# model_path2 = '%s/vbak3/model_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1)
-				# model.save(model_path2)
-
-				# print('loading weights... ', model_path2)
-				# model.load_weights(model_path2) # load model with the minimum training error
-
-				# y_predicted_valid1 = model.predict(x_valid)
-				# y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-				# temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-				# print([i1,l]+list(temp1))
-				# t_mse1 = temp1[0]
-
-				# if t_mse1-mse1< -self.min_delta:
-				# 	cnt1 = 0
-				# else:
-				# 	cnt1 += 1
-
-				# if t_mse1 < mse1:
-				# 	mse1 = t_mse1
-
-				# if cnt1>=self.step:
-				# 	break
 
 			stop1 = time.time()
 			print(stop1-start1)
@@ -4450,9 +2613,6 @@ class _Base1(BaseEstimator):
 
 		if self.config['predict_test']==1:
 			# load serial and feature vectors
-			# type_id1 = 0
-			# self.prep_data_2_sub2(type_id1=type_id1,keys=['test'],stride=1,type_id=0,select_config=config)
-
 			key1 = 'test'
 			x_test = self.x[key1]
 			idx_sel_list_test, y_ori, y, vec_serial, vec_local = self.local_serial_dict[key1]
@@ -4521,299 +2681,6 @@ class _Base1(BaseEstimator):
 
 		return mtx_feature, [idx_sel_list, y_ori, y, vec_serial, vec_local]
 
-	# convolution with sequence features
-	def control_pre_test3_group_1(self,path1,file_prefix,run_id_load=-1):
-		
-		config_filename1 = 'config_%d.npy'%(run_id_load)
-		flag1 = (os.path.exists(config_filename1)==True)
-		if flag1==1:
-			config_1 = np.load(config_filename1,allow_pickle=True)
-			config_1 = config_1[()]
-		else:
-			print('config file does not exist', config_filename1)
-			return -1
-
-		print('get_model2a1_convolution')
-		# CNN: 10*2,10,5,5
-		# run_id: 100001
-			
-		# model = utility_1.get_model2a1_attention_1_2_2_sample6(config)
-		model1 = utility_1.get_model2a1_convolution(config_1)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		if 'model_path_1' in self.config:
-			MODEL_PATH_1 = self.config['model_path_1']
-		else:
-			MODEL_PATH_1 = 'test%d.h5'%(run_id_load)
-
-		print('loading weights... ', MODEL_PATH_1)
-		model1.load_weights(MODEL_PATH_1) # load model with the minimum training error
-
-		layer_name1 = self.config['est_layer_name']
-		intermediate_layer = Model(inputs=model1.input,
-									outputs=model1.get_layer(layer_name1).output)
-
-		# keys = ['train','valid','test']
-		# key1 = keys[0]
-		# chrom1 = []
-		# for i in range(0,len(keys)):
-		# 	key1 = keys[i]
-		# 	idx_sel_list, y_ori, y, vec_serial, vec_local = self.local_serial_dict[key1]
-		# 	chrom1.extend(idx_sel_list[:,0])
-			
-		# chrom_vec1 = np.sort(np.unique(chrom1))
-
-		chrom_vec1 = np.unique(self.chrom)
-		serial_vec, f_mtx = self.load_feature_local(chrom_vec1,type_id=0)
-		feature1 = intermediate_layer.predict(f_mtx,batch_size=32)
-
-		output_filename = 'test_model%d_predict2.h5'%(run_id_load)
-		with h5py.File(output_filename,'w') as fid:
-			fid.create_dataset("serial", data=serial_vec[:,0:2], compression="gzip")
-			fid.create_dataset("feature", data=feature1, compression="gzip")
-		
-		print('control_pre_test3_group_1',chrom_vec1,feature1.shape)
-
-	# convolution with sequence features
-	def control_pre_test3_group(self,path1,file_prefix,run_id_load=-1):
-
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		self.x = dict()
-		self.idx = dict()
-
-		if 'run_id_load' in self.config:
-			run_id_load = self.config['run_id_load']
-
-		# config = self.config.copy()
-		config_filename1 = 'config_%d.npy'%(run_id_load)
-		config_filename2 = 'config_%d.npy'%(self.run_id)
-		flag1 = (os.path.exists(config_filename1)==True)
-		flag2 = (os.path.exists(config_filename2)==True)
-		sel_conv_id = self.config['sel_conv_id']
-		if flag1==1:
-			config_1 = np.load(config_filename1,allow_pickle=True)
-			config_1 = config_1[()]
-		else:
-			print('config file does not exist', config_filename1)
-			return -1
-
-		# sel_conv_id = self.config['sel_conv_id']
-		if flag2==1:
-			print('previous config file exists', config_filename2)
-			config = np.load(config_filename2,allow_pickle=True)
-			config = config[()]
-		else:
-			print('config file does not exist', config_filename2)
-			if self.train==0:
-				return -1
-
-		print('get_model2a1_convolution')
-		# CNN: 10*2,10,5,5
-		# run_id: 100001
-			
-		# model = utility_1.get_model2a1_attention_1_2_2_sample6(config)
-		model1 = utility_1.get_model2a1_convolution(config_1)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		MODEL_PATH_1 = self.config['model_path_1']
-		print('loading weights... ', MODEL_PATH_1)
-		model1.load_weights(MODEL_PATH_1) # load model with the minimum training error
-
-		layer_name1 = self.config['est_layer_name']
-		intermediate_layer = Model(inputs=model1.input,
-									outputs=model1.get_layer(layer_name1).output)
-
-		keys_vec = [['train','valid','test'],['train','valid'],['test']]
-		sel_id = 0
-		if (self.train==1) and (self.config['predict_test']==0):
-			sel_id = 1
-		if self.train==0:
-			self.config['predict_test'] = 1
-			sel_id = 2
-
-		keys_vec_sel = keys_vec[sel_id]
-
-		if (self.train==1) or (self.config['predict_test']==1):
-
-			# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-			# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-			# find sequences with the serial
-			print('load sequences')
-			self.prep_data_2_sub2(type_id1=0,keys=keys_vec_sel,stride=1)
-
-			if self.train==1:
-				mtx_train1 = self.x['train']
-				idx_sel_list_train1, y_train_ori1_1, __, __, __ = self.local_serial_dict['train']
-
-				mtx_valid1 = self.x['valid']
-				idx_sel_list_valid1, y_valid_ori1_1, __, __, __ = self.local_serial_dict['valid']
-
-				start = time.time()
-				x_train_feature1 = intermediate_layer.predict(mtx_train1,batch_size=32)
-				x_valid_feature1 = intermediate_layer.predict(mtx_valid1,batch_size=32)
-				stop = time.time()
-
-				print('x_train_feature1','x_valid_feature1',x_train_feature1.shape,x_valid_feature1.shape,stop-start)
-
-			if self.config['predict_test']==1:
-				mtx_test1 = self.x['test']
-				idx_sel_list_test1, y_test_ori1_1, y_test_ori1, vec_serial_test1, vec_local_test1 = self.local_serial_dict['test']
-				x_test_feature1 = intermediate_layer.predict(mtx_test1,batch_size=32)
-
-			# find feature vectors with the serial
-			print('load sequence features')
-			self.prep_data_2_sub2(type_id1=1,keys=keys_vec_sel,stride=1)
-			if self.train==1:
-				mtx_train2 = self.x['train']
-				idx_sel_list_train2, y_train_ori2_1, __, __, __ = self.local_serial_dict['train']
-				print('mtx_train2',mtx_train2.shape)
-
-				list1 = [idx_sel_list_train2, y_train_ori2_1]
-				mtx_train, list_1 = self.feature_concatenate(idx_sel_list_train2[:,1],idx_sel_list_train1[:,1],mtx_train2,x_train_feature1,list1)
-				self.local_serial_dict['train'] = list_1
-				idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = list_1
-
-			if (self.train==1) or (self.config['predict_valid']==1):
-				mtx_valid2 = self.x['valid']
-				idx_sel_list_valid2, y_valid_ori2_1, __, __, __ = self.local_serial_dict['valid']
-				
-				print('mtx_valid2',mtx_valid2.shape)
-				list1 = [idx_sel_list_valid2, y_valid_ori2_1]
-				mtx_valid, list_1 = self.feature_concatenate(idx_sel_list_valid2[:,1],idx_sel_list_valid1[:,1],mtx_valid2,x_valid_feature1,list1)
-				self.local_serial_dict['valid'] = list_1
-				idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = list_1
-
-			if self.config['predict_test']==1:
-				mtx_test2 = self.x['test']
-				idx_sel_list_test2, y_test_ori2_1, __, __, __ = self.local_serial_dict['test']
-
-				list1 = [idx_sel_list_test2, y_test_ori2_1]
-				mtx_test, list_1 = self.feature_concatenate(idx_sel_list_test2[:,1],idx_sel_list_test1[:,1],mtx_test2,x_test_feature1,list1)
-				self.local_serial_dict['test'] = list_1
-				idx_sel_list_test, y_test_ori_1, y_test_ori, vec_serial_test, vec_local_test = list_1
-				print('mtx_test2, mtx_test',mtx_test2.shape,mtx_test.shape,y_test_ori_1.shape,y_test_ori.shape)
-				assert y_test_ori_1.shape[0]==y_test_ori.shape[0]
-
-			if self.train==1:
-				train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-				print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-				print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-				x_train, y_train = np.asarray(mtx_train[vec_local_train]), np.asarray(y_train_ori)
-				x_valid, y_valid = np.asarray(mtx_valid[vec_local_valid]), np.asarray(y_valid_ori)
-				feature_dim = mtx_train.shape[-1]
-				# x_valid = mtx_valid
-				# y_valid = y_valid_ori_1
-
-				# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-				# print(x_valid.shape,y_valid.shape)
-			else:
-				feature_dim = mtx_test.shape[-1]
-
-			if flag2==0:
-				config = self.config.copy()
-				# units1=[50,50,50,50,1,25,25,1]
-				# units1=[50,50,50,25,50,25,0,0]
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				units1=[50,50,50,25,50,25,0,0]
-				config['feature_dim_vec'] = units1[2:]
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				# units1=[50,50,50,25,50,25,0,0]
-				config['feature_dim_vec_basic'] = units1[2:]
-
-				config['attention1']=0
-				config['attention2']=1
-				config['select2']=1
-				print('get_model2a1_attention_1_2_2_sample')
-				np.save(config_filename2,config,allow_pickle=True)
-
-			if 'model_type_id' in config:
-				model_type_id = config['model_type_id']
-			else:
-				model_type_id = 0
-
-			context_size = 2*self.flanking+1
-			config['feature_dim'] = feature_dim
-			config['context_size'] = context_size
-			model = self.get_model_sub1(model_type_id,context_size,config)
-
-			# return -1
-
-		if self.train==1:
-			MODEL_PATH = 'test%d.h5'%(self.run_id)
-			n_epochs = self.config['n_epochs']
-			BATCH_SIZE = 512
-			# n_step_local = n_step_local_ori
-			# n_epochs = 1
-
-			print('x_train, y_train, x_valid, y_valid', x_train.shape, y_train.shape, x_valid.shape, y_valid.shape)
-			earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=0, mode='auto')
-			checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False)
-			# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-			model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
-							callbacks=[earlystop,checkpointer])
-
-			self.config.update({'model_path1':MODEL_PATH})
-
-		else:
-			MODEL_PATH = self.config['model_path1']
-			print('loading weights... ', MODEL_PATH)
-			model.load_weights(MODEL_PATH) # load model with the minimum training error
-
-		flag = 0
-		valid_score_1 = []
-		if self.config['predict_valid']==1:
-			if self.train==1:
-				print('loading weights... ', MODEL_PATH)
-				model.load_weights(MODEL_PATH) # load model with the minimum training error
-				self.model = model
-				flag = 1
-
-			y_predicted_valid = model.predict(x_valid)
-			print(y_valid_ori_1.shape,y_predicted_valid.shape)
-			valid_score_1 = score_2a(np.ravel(y_valid_ori_1), np.ravel(y_predicted_valid[:,self.flanking]))
-			print(valid_score_1)
-
-			output_filename = self.config['valid_output_filename']
-			self.output_predict_2(self.run_id,output_filename=output_filename,valid_score=valid_score_1)
-
-		if self.config['predict_test']==1:
-			# load serial and feature vectors
-			# type_id1 = 0
-			# self.prep_data_2_sub2(type_id1=type_id1,keys=['test'],stride=1,type_id=0,select_config=config)
-			x_test, y_test = np.asarray(mtx_test[vec_local_test]), np.asarray(y_test_ori)
-
-			print('x_test,y_test',x_test.shape,y_test.shape,y_test_ori_1.shape)
-
-			assert y_test_ori_1.shape[0]==y_test.shape[0]
-
-			if flag==0:
-				print('loading weights... ', MODEL_PATH)
-				model.load_weights(MODEL_PATH) # load model with the minimum training error
-				self.model = model
-
-			type_id1, type_id, interval, est_attention = 1, 1, 5000, 1
-			if 'est_attention' in self.config:
-				est_attention = self.config['est_attention']
-			# y_predicted_test, y_test, idx_sel_list_test, predicted_attention_test, score_vec1, score_dict1 = self.test_pre_1(type_id1=type_id1,type_id=type_id,interval=interval,
-			# 																													est_attention=est_attention,select_config={})
-
-			y_predicted_test, idx_sel_list_test, predicted_attention_test = self.predict_test_1(idx_sel_list_test,mtx_test,vec_serial_test,vec_local_test,
-																			type_id=type_id,type_id1=1,est_attention=est_attention,interval=interval)
-			# predicted_attention_test, idx_sel_list_test = self.estimate_attention_test_1(idx_sel_list,mtx_test,vec_serial,vec_local,type_id=0)
-
-			score_vec1, score_dict1 = self.score_1(y_test_ori_1,y_predicted_test,idx_sel_list_test,type_id=type_id)
-			
-			output_filename = 'test_%d_%d'%(self.run_id,self.run_id)
-			self.output_predict_1(idx_sel_list_test, y_predicted_test, y_test_ori_1, predicted_attention_test, 
-								score_vec1, score_dict1, output_filename, valid_score=valid_score_1)
-
-		return model
-
 	# load configuration parameters
 	def load_config_1(self,run_id_load):
 
@@ -4822,12 +2689,6 @@ class _Base1(BaseEstimator):
 			config = np.load(config_filename,allow_pickle=True)
 			config = config[()]
 
-			if (run_id_load==233) or (run_id_load==234):
-				config['regularizer2_2'] = 1e-04
-			elif run_id_load<235:
-				config['regularizer2_2'] = 1e-05
-			else:
-				pass
 		else:
 			config = self.config_pre_1(run_id_load)
 			np.save(config_filename,config,allow_pickle=True)
@@ -4858,17 +2719,6 @@ class _Base1(BaseEstimator):
 					dict1[layer_name].extend(encoded_vec)
 
 				list1.extend(encoded_serial)
-				
-				# score_vec = []
-				# for key1 in ['train','valid','test']:
-				# 	temp1 = '%s_predict'%(key1)
-				# 	temp2 = '%s_score'%(key1)
-				# 	y_predicted = fid[temp1][:]
-				# 	t_score1 = fid[temp2][:]
-				# 	y_predicted_1 = y_predicted[:,flanking]
-				# 	list2.extend(y_predicted_1)
-				# 	score_vec.append(t_score1)
-				# 	print(t_score1)
 
 		serial_vec = np.asarray(list1)
 		print(serial_vec.shape)
@@ -4882,856 +2732,7 @@ class _Base1(BaseEstimator):
 
 		return True
 
-	def control_pre_test2_ori(self,path1,file_prefix):
-
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		config = self.config.copy()
-		# units1=[50,50,50,50,1,25,25,1]
-		# units1=[50,50,50,25,50,25,0,0]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		units1=[50,50,32,25,50,25,0,0]
-		# units1=[50,50,50,25,50,25,0,0]
-		config['feature_dim_vec'] = units1[2:]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# units1=[50,50,50,25,50,0,0,0]
-		units1=[50,50,32,25,50,0,0,0]
-		config['feature_dim_vec_basic'] = units1[2:]
-		print('get_model2a1_attention_1_2_2_sample2')
-		flanking = 50
-		context_size = 2*flanking+1
-		n_step_local_ori = 5000
-		region_unit_size = 1
-		feature_dim = 4
-		# model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-
-
-		# conv_1 = [n_filters, kernel_size1, regularizer2, dilation_rate1, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1 = []
-		regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-		n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 64, 10, 5, 1, 2, 2, 0.2, 1
-		conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1.append(conv_1)
-
-		n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 5, 1, 1, 4, 4, 0.2, 1
-		conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1.append(conv_1)
-
-		n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 16, 5, 1, 1, 5, 5, 0.2, 1
-		conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		local_conv_list1.append(conv_1)
-		config['local_conv_list1'] = local_conv_list1
-		print(local_conv_list1)
-
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
-		feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 32, 50, True, 0, 1
-		n_step_local1 = 15
-		local_vec_1 = [feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local]
-		attention2_local = 0
-		config.update({'feature_dim':feature_dim})
-		select2 = 1
-		config.update({'attention1':0,'attention2':1,'select2':select2,'context_size':context_size,'n_step_local':n_step_local1,'n_step_local_ori':n_step_local_ori})
-		config.update({'local_vec_1':local_vec_1,'attention2_local':attention2_local})
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num, valid_num = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 50
-		BATCH_SIZE = 32
-		n_step_local = n_step_local_ori
-
-		training_generator = DataGenerator3(vec_local_train, y_train_ori, mtx_train,
-												batch_size=BATCH_SIZE, 
-												dim=(context_size,n_step_local,4), 
-												shuffle=True)
-		# validation_generator = DataGenerator3(vec_local_valid, y_valid_ori, mtx_valid,
-		# 										batch_size=BATCH_SIZE, 
-		# 										dim=(context_size,n_step_local,4), 
-		# 										shuffle=True)
-
-		model_path1 = 'saved-model%d-{epoch:02d}-{val_acc:.2f}.h5'%(self.run_id)
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=model_path1, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=False)
-
-		train_id_1 = np.arange(train_num)
-		valid_id_1 = np.arange(valid_num)
-		np.random.shuffle(valid_id_1)
-		# cnt1 = 0
-		# mse1 = 1e5
-		# decay_rate = 0.95
-		# decay_step = 1
-		# init_lr = self.config['lr']
-
-		for i1 in range(1):
-
-			# self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			start1 = time.time()
-
-			valid_num1 = 1000
-			num2 = np.min([valid_num,valid_num1])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-
-			# model.fit_generator(generator = training_generator, epochs = n_epochs,
-			# 				steps_per_epoch = int(train_num/BATCH_SIZE),
-			# 				validation_data = validation_generator,
-			# 				validation_steps = int(valid_num/BATCH_SIZE),
-			# 				callbacks=[earlystop,checkpointer], 
-			# 				max_queue_size = 100,
-			# 				workers=20, use_multiprocessing=True)
-
-			for i in range(10):
-
-				n_epochs = 5
-				model.fit(x=training_generator,epochs = n_epochs, validation_data = [x_valid1,y_valid1],
-							callbacks=[earlystop,checkpointer],
-							max_queue_size = 1000,
-		 					workers=20, use_multiprocessing=True)
-
-				model_path2 = '%s/model_%d_%d_%d.h5'%(self.path,self.run_id,context_size,i)
-				model.save(model_path2)
-
-				print('loading weights... ', model_path2)
-				model.load_weights(model_path2) # load model with the minimum training error
-
-				y_predicted_valid1 = model.predict(x_valid)
-				y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-				temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-				print(temp1)
-
-			stop1 = time.time()
-			print(stop1-start1)
-
-		return model
-
-	def control_pre_test2_ori(self,path1,file_prefix,run_id_load=-1):
-
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		# config = self.config.copy()
-		# # units1=[50,50,50,50,1,25,25,1]
-		# # units1=[50,50,50,25,50,25,0,0]
-		# # n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# units1=[50,50,50,25,50,25,0,0]
-		# # units1=[50,50,50,25,50,25,0,0]
-		# config['feature_dim_vec'] = units1[2:]
-		# # n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# # units1=[50,50,50,25,50,0,0,0]
-		# units1=[50,50,50,25,50,0,0,0]
-		# # units1=[50,50,50,25,50,0,0,0]
-		# config['feature_dim_vec_basic'] = units1[2:]
-		# # print('get_model2a1_attention_1_2_2_sample2')
-		# flanking = self.flanking
-		# context_size = 2*flanking+1
-		# n_step_local_ori = 5000
-		# region_unit_size = 1
-		# feature_dim = 4
-		# # model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-
-
-		# conv_1 = [n_filters, kernel_size1, regularizer2, dilation_rate1, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1 = []
-		# regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 100, 15, 10, 1, 1, 1, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 7, 1, 1, 5, 5, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 32, 5, 1, 1, 5, 5, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-
-		# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = 25, 3, 1, 1, 2, 2, 0.2, 1
-		# conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-		# local_conv_list1.append(conv_1)
-
-		# config['local_conv_list1'] = local_conv_list1
-		# print(local_conv_list1)
-
-		if run_id_load<0:
-			run_id_load = self.run_id
-
-		config = self.load_config_1(run_id_load)
-
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 16, 20, True, 0, 0
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 20, 35, True, 0, 1
-		# feature_dim3 = []
-		# n_step_local1 = 15
-		# local_vec_1 = [feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local]
-		# attention2_local = 0
-		# config.update({'feature_dim':feature_dim})
-		# select2 = 1
-		# config.update({'attention1':0,'attention2':1,'select2':select2,'context_size':context_size,'n_step_local':n_step_local1,'n_step_local_ori':n_step_local_ori})
-		# config.update({'local_vec_1':local_vec_1,'attention2_local':attention2_local})
-		# concatenate_1 = 0
-		# concatenate_2 = 1
-		# config.update({'concatenate_1':concatenate_1,'concatenate_2':concatenate_2})
-		# hidden_unit = 25
-		# config.update({'output_dim':hidden_unit})
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-		epoch_id, local_id = 0, 0
-		if self.train==2:
-			model_path1 = self.config['model_path1']
-			epoch_id, local_id = self.config['train_pre_epoch']
-			print('loading weights...', model_path1)
-			model.load_weights(model_path1)
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=3)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 1
-		BATCH_SIZE = 16
-		n_step_local_ori = config['n_step_local_ori']
-		n_step_local = n_step_local_ori
-		flanking = self.flanking
-		context_size = 2*flanking+1
-
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False)
-
-		num_sample1 = 1
-		if 'interval' in self.config:
-			interval = self.config['interval']
-		else:
-			interval = 2500
-		select_num = np.int(np.ceil(train_num1/interval))
-		# select_num1 = select_num*interval
-		# print(num_sample1,select_num,interval,select_num1)
-		if select_num>1:
-			t1 = np.arange(0,train_num1,interval)
-			pos = np.vstack((t1,t1+interval)).T
-			pos[-1][1] = train_num1
-			print(train_num1,select_num,interval)
-			print(pos)
-		else:
-			pos = [[0,train_num1]]
-
-		start2 = time.time()
-		train_id_1 = np.arange(train_num1)
-		valid_id_1 = np.arange(valid_num1)
-		np.random.shuffle(valid_id_1)
-		cnt1 = 0
-		mse1 = 1e5
-		decay_rate = 0.95
-		decay_step = 5
-		init_lr = self.config['lr']
-
-		for i1 in range(30):
-
-			# self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			if i1>0:
-				lr = init_lr*((decay_rate)**(int(i1/decay_step)))
-				K.set_value(model.optimizer.learning_rate, lr)
-
-			np.random.shuffle(train_id_1)
-			if i1<epoch_id:
-				continue
-			
-			start1 = time.time()
-
-			valid_num2 = 5000
-			num2 = np.min([valid_num1,valid_num2])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-			# x_valid1, y_valid1 = x_valid, y_valid
-
-			for l in range(select_num):
-
-				if (i1<=epoch_id) and (l<local_id):
-					continue
-
-				s1, s2 = pos[l]
-				print(l,s1,s2)
-				sel_id = train_id_1[s1:s2]
-
-				x_train = mtx_train[vec_local_train[sel_id]]
-				y_train = y_train_ori[sel_id]
-
-				x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-				print(x_train.shape,y_train.shape)
-				n_epochs = 1
-
-				train_num = x_train.shape[0]
-				print('x_train, y_train', x_train.shape, y_train.shape)
-				print('x_valid, y_valid', x_valid1.shape, y_valid1.shape)
-				
-				# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-				model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid1,y_valid1],
-									callbacks=[earlystop,checkpointer])
-				
-				# model.load_weights(MODEL_PATH)
-				model_path2 = '%s/model_%d_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1,l)
-				model.save(model_path2)
-				# model_path2 = MODEL_PATH
-				# if i%5==0:
-				# 	print('loading weights... ', MODEL_PATH)
-
-				if l%5==0:
-					print('loading weights... ', model_path2)
-				# 	model.load_weights(MODEL_PATH) # load model with the minimum training error
-					y_predicted_valid1 = model.predict(x_valid)
-					y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					print(temp1)
-
-				# print('loading weights... ', model_path2)
-				# model.load_weights(model_path2) # load model with the minimum training error
-
-			print('loading weights... ', model_path2)
-			model.load_weights(model_path2) # load model with the minimum training error
-
-			y_predicted_valid1 = model.predict(x_valid)
-			y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-			temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-			print([i1,l]+list(temp1))
-			t_mse1 = temp1[0]
-
-			if np.abs(t_mse1-mse1)<self.min_delta:
-				cnt1 += 1
-			else:
-				cnt1 = 0
-
-			if t_mse1 < mse1:
-				mse1 = t_mse1
-
-			if cnt1>=self.step:
-				break
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		print('loading weights... ', MODEL_PATH)
-		model.load_weights(MODEL_PATH) # load model with the minimum training error
-		y_predicted_valid1 = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-		temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-		print(temp1)
-
-		return model
-
-	def control_pre_test2_local(self,path1,file_prefix,run_id_load=-1):
-
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		if run_id_load<0:
-			run_id_load = self.run_id
-
-		config = self.load_config_1(run_id_load)
-
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 16, 20, True, 0, 0
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 20, 35, True, 0, 1
-		# feature_dim3 = []
-		# n_step_local1 = 15
-		# local_vec_1 = [feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local]
-		# attention2_local = 0
-		# config.update({'feature_dim':feature_dim})
-		# select2 = 1
-		# config.update({'attention1':0,'attention2':1,'select2':select2,'context_size':context_size,'n_step_local':n_step_local1,'n_step_local_ori':n_step_local_ori})
-		# config.update({'local_vec_1':local_vec_1,'attention2_local':attention2_local})
-		# concatenate_1 = 0
-		# concatenate_2 = 1
-		# config.update({'concatenate_1':concatenate_1,'concatenate_2':concatenate_2})
-		# hidden_unit = 25
-		# config.update({'output_dim':hidden_unit})
-
-		if 'model_type_id' in self.config:
-			model_type_id = self.config['model_type_id']
-		else:
-			model_type_id = 5
-
-		if model_type_id==2:
-			config['layer_norm'] = 1
-		elif model_type_id==3:
-			config['layer_norm'] = 0
-		else:
-			config['layer_norm'] = 2
-
-		# model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		model = utility_1.get_model2a1_attention_1_2_2_sample5_1(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		epoch_id, local_id = 0, 0
-		if self.train==2:
-			model_path1 = self.config['model_path1']
-			epoch_id, local_id = self.config['train_pre_epoch']
-			print('loading weights...', model_path1)
-			model.load_weights(model_path1)
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 1
-		BATCH_SIZE = 16
-		n_step_local_ori = config['n_step_local_ori']
-		n_step_local = n_step_local_ori
-		flanking = self.flanking
-		context_size = 2*flanking+1
-
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False)
-
-		num_sample1 = 1
-		if 'interval' in self.config:
-			interval = self.config['interval']
-		else:
-			interval = 2500
-		select_num = np.int(np.ceil(train_num1/interval))
-		# select_num1 = select_num*interval
-		# print(num_sample1,select_num,interval,select_num1)
-		if select_num>1:
-			t1 = np.arange(0,train_num1,interval)
-			pos = np.vstack((t1,t1+interval)).T
-			pos[-1][1] = train_num1
-			print(train_num1,select_num,interval)
-			print(pos)
-		else:
-			pos = [[0,train_num1]]
-
-		start2 = time.time()
-		train_id_1 = np.arange(train_num1)
-		valid_id_1 = np.arange(valid_num1)
-		np.random.shuffle(valid_id_1)
-		cnt1 = 0
-		mse1 = 1e5
-		decay_rate = 0.95
-		decay_step = 5
-		init_lr = self.config['lr']
-
-		for i1 in range(30):
-
-			# self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			if i1>0:
-				lr = init_lr*((decay_rate)**(int(i1/decay_step)))
-				K.set_value(model.optimizer.learning_rate, lr)
-
-			np.random.shuffle(train_id_1)
-			if i1<epoch_id:
-				continue
-			
-			start1 = time.time()
-
-			# valid_num2 = 5000
-			valid_num2 = 2500
-			num2 = np.min([valid_num1,valid_num2])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-			# x_valid1, y_valid1 = x_valid, y_valid
-
-			for l in range(select_num):
-
-				if (i1<=epoch_id) and (l<local_id):
-					continue
-
-				s1, s2 = pos[l]
-				print(l,s1,s2)
-				sel_id = train_id_1[s1:s2]
-
-				x_train = mtx_train[vec_local_train[sel_id]]
-				y_train = y_train_ori[sel_id]
-
-				x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-				print(x_train.shape,y_train.shape)
-				n_epochs = 1
-
-				train_num = x_train.shape[0]
-				print('x_train, y_train', x_train.shape, y_train.shape)
-				print('x_valid, y_valid', x_valid1.shape, y_valid1.shape)
-				
-				# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-				model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid1,y_valid1],
-									callbacks=[earlystop,checkpointer])
-				
-				# model.load_weights(MODEL_PATH)
-				model_path2 = '%s/vbak3/model_%d_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1,l)
-				model.save(model_path2)
-				# model_path2 = MODEL_PATH
-				# if i%5==0:
-				# 	print('loading weights... ', MODEL_PATH)
-
-				if l%10==0:
-					print('loading weights... ', model_path2)
-					model.load_weights(MODEL_PATH) # load model with the minimum training error
-					y_predicted_valid1 = model.predict(x_valid)
-					y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					print(temp1)
-
-					model.load_weights(model_path2) # load model with the minimum training error
-
-				# print('loading weights... ', model_path2)
-				# model.load_weights(model_path2) # load model with the minimum training error
-
-			# print('loading weights... ', model_path2)
-			# model.load_weights(model_path2) # load model with the minimum training error
-
-			y_predicted_valid1 = model.predict(x_valid)
-			y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-			temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-			print([i1,l]+list(temp1))
-			t_mse1 = temp1[0]
-
-			if t_mse1-mse1< -self.min_delta:
-				cnt1 = 0
-			else:
-				cnt1 += 1
-
-			if t_mse1 < mse1:
-				mse1 = t_mse1
-
-			if cnt1>=self.step:
-				break
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		print('loading weights... ', MODEL_PATH)
-		model.load_weights(MODEL_PATH) # load model with the minimum training error
-		y_predicted_valid1 = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-		temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-		print(temp1)
-
-		return model
-
-	def control_pre_test2(self,path1,file_prefix,run_id_load=-1):
-
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		if run_id_load<0:
-			run_id_load = self.run_id
-
-		config = self.load_config_1(run_id_load)
-
-		# params:
-		# (64, 10, 5, 1, 1, 1, 0.2, 1)
-		# (32, 5, 1, 1, 5, 5, 0.2, 1)
-		# (16, 5, 1, 1, 5, 5, 0.2, 1), (16, 25, True, 0, 0)
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 16, 20, True, 0, 0
-		# feature_dim1, feature_dim2, return_sequences_flag1, sample_local, pooling_local = 20, 35, True, 0, 1
-		# feature_dim3 = []
-		# n_step_local1 = 15
-		# local_vec_1 = [feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local]
-		# attention2_local = 0
-		# config.update({'feature_dim':feature_dim})
-		# select2 = 1
-		# config.update({'attention1':0,'attention2':1,'select2':select2,'context_size':context_size,'n_step_local':n_step_local1,'n_step_local_ori':n_step_local_ori})
-		# config.update({'local_vec_1':local_vec_1,'attention2_local':attention2_local})
-		# concatenate_1 = 0
-		# concatenate_2 = 1
-		# config.update({'concatenate_1':concatenate_1,'concatenate_2':concatenate_2})
-		# hidden_unit = 25
-		# config.update({'output_dim':hidden_unit})
-
-		if 'model_type_id' in self.config:
-			model_type_id = self.config['model_type_id']
-		else:
-			model_type_id = 5
-
-		if model_type_id==2:
-			config['layer_norm'] = 1
-		elif model_type_id==3:
-			config['layer_norm'] = 0
-		else:
-			config['layer_norm'] = 2
-
-		# model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		model = utility_1.get_model2a1_attention_1_2_2_sample5_1(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-
-		epoch_id, local_id = 0, 0
-		if self.train==2:
-			model_path1 = self.config['model_path1']
-			epoch_id, local_id = self.config['train_pre_epoch']
-			print('loading weights...', model_path1)
-			model.load_weights(model_path1)
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		self.prep_data_2_sub2(type_id1=0,keys=['train','valid'],stride=1)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 1
-		BATCH_SIZE = 16
-		n_step_local_ori = config['n_step_local_ori']
-		n_step_local = n_step_local_ori
-		flanking = self.flanking
-		context_size = 2*flanking+1
-
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False)
-
-		num_sample1 = 1
-		if 'interval' in self.config:
-			interval = self.config['interval']
-		else:
-			interval = 2500
-		select_num = np.int(np.ceil(train_num1/interval))
-		# select_num1 = select_num*interval
-		# print(num_sample1,select_num,interval,select_num1)
-		if select_num>1:
-			t1 = np.arange(0,train_num1,interval)
-			pos = np.vstack((t1,t1+interval)).T
-			pos[-1][1] = train_num1
-			print(train_num1,select_num,interval)
-			print(pos)
-		else:
-			pos = [[0,train_num1]]
-
-		start2 = time.time()
-		train_id_1 = np.arange(train_num1)
-		valid_id_1 = np.arange(valid_num1)
-		np.random.shuffle(valid_id_1)
-		cnt1 = 0
-		mse1 = 1e5
-		decay_rate = 0.95
-		decay_step = 5
-		init_lr = self.config['lr']
-
-		for i1 in range(30):
-
-			# self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			if i1>0:
-				lr = init_lr*((decay_rate)**(int(i1/decay_step)))
-				K.set_value(model.optimizer.learning_rate, lr)
-
-			np.random.shuffle(train_id_1)
-			if i1<epoch_id:
-				continue
-			
-			start1 = time.time()
-
-			# valid_num2 = 5000
-			valid_num2 = 2500
-			num2 = np.min([valid_num1,valid_num2])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-			# x_valid1, y_valid1 = x_valid, y_valid
-
-			for l in range(select_num):
-
-				if (i1<=epoch_id) and (l<local_id):
-					continue
-
-				s1, s2 = pos[l]
-				print(l,s1,s2)
-				sel_id = train_id_1[s1:s2]
-
-				x_train = mtx_train[vec_local_train[sel_id]]
-				y_train = y_train_ori[sel_id]
-
-				x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-				print(x_train.shape,y_train.shape)
-				n_epochs = 1
-
-				train_num = x_train.shape[0]
-				print('x_train, y_train', x_train.shape, y_train.shape)
-				print('x_valid, y_valid', x_valid1.shape, y_valid1.shape)
-				
-				# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-				model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid1,y_valid1],
-									callbacks=[earlystop,checkpointer])
-				
-				# model.load_weights(MODEL_PATH)
-				model_path2 = '%s/vbak3/model_%d_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1,l)
-				model.save(model_path2)
-				# model_path2 = MODEL_PATH
-				# if i%5==0:
-				# 	print('loading weights... ', MODEL_PATH)
-
-				if l%10==0:
-					print('loading weights... ', model_path2)
-					model.load_weights(MODEL_PATH) # load model with the minimum training error
-					y_predicted_valid1 = model.predict(x_valid)
-					y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					print(temp1)
-
-					model.load_weights(model_path2) # load model with the minimum training error
-
-				# print('loading weights... ', model_path2)
-				# model.load_weights(model_path2) # load model with the minimum training error
-
-			# print('loading weights... ', model_path2)
-			# model.load_weights(model_path2) # load model with the minimum training error
-
-			y_predicted_valid1 = model.predict(x_valid)
-			y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-			temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-			print([i1,l]+list(temp1))
-			t_mse1 = temp1[0]
-
-			if t_mse1-mse1< -self.min_delta:
-				cnt1 = 0
-			else:
-				cnt1 += 1
-
-			if t_mse1 < mse1:
-				mse1 = t_mse1
-
-			if cnt1>=self.step:
-				break
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		print('loading weights... ', MODEL_PATH)
-		model.load_weights(MODEL_PATH) # load model with the minimum training error
-		y_predicted_valid1 = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-		temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-		print(temp1)
-
-		return model
-
-	def control_pre_test2_predict(self,path1,file_prefix,run_id_load=-1):
-		
-		self.x = dict()
-		self.idx = dict()
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix)
-
-		if run_id_load<0:
-			run_id_load = self.run_id
-
-		config = self.load_config_1(run_id_load)
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		# model = utility_1.get_model2a1_word()
-		# return -1
-		
-		model_path1 = self.config['model_path1']
-		# epoch_id, local_id = self.config['train_pre_epoch']
-		print('loading weights...', model_path1)
-		model.load_weights(model_path1)
-		self.model = model
-
-		# mtx_valid = self.x['valid']
-		# idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		y_predicted_test, y_test, idx_sel_list_test, predicted_attention_test, score_vec1, score_dict1 = self.test_pre_1(type_id1=0,est_attention=0)
-
-		output_filename = 'test_%d_%d'%(self.run_id,run_id_load)
-		self.output_predict_1(idx_sel_list_test, y_predicted_test, y_test, predicted_attention_test, 
-							score_vec1, score_dict1, output_filename)
-
-		return True
-
+	# save predicted signals, predicted importances scores, and prediction performance evaluation scores
 	def output_predict_1(self, idx_sel_list_test, y_predicted_test, y_test, predicted_attention_test, 
 							score_vec1, score_dict1, output_filename, valid_score=[]):
 
@@ -5783,6 +2784,7 @@ class _Base1(BaseEstimator):
 
 		return True
 
+	# save prediction performance evaluation scores
 	def output_predict_2(self, run_id, output_filename, valid_score=[]):
 
 		# output_filename1 = 'test_score_valid.txt'
@@ -5806,8 +2808,6 @@ class _Base1(BaseEstimator):
 
 		if flag==1:
 			data_1 = data_1.append(data_2, ignore_index=True)
-			# data_2 = pd.concat([data_1,data_2], axis=0, join='outer', ignore_index=True, 
-			# 		keys=None, levels=None, names=None, verify_integrity=False, copy=True)
 		else:
 			data_1 = data_2
 
@@ -5877,11 +2877,6 @@ class _Base1(BaseEstimator):
 						type_id=0,type_id1=1,est_attention=1,interval=2500):
 
 		# load serial and feature vectors
-		# self.prep_data_2_sub2(type_id1=type_id1,keys=['test'],stride=1,type_id2=1,select_config=select_config)
-
-		# key1 = 'test'
-		# mtx_test = self.x[key1]
-		# idx_sel_list, y_ori, y, vec_serial, vec_local = self.local_serial_dict[key1]
 		ref_serial = idx_sel_list[:,1]
 		serial_1 = np.unique(vec_serial)
 		assert list(np.sort(ref_serial))==list(serial_1)
@@ -5992,11 +2987,6 @@ class _Base1(BaseEstimator):
 	def estimate_attention_test_1(self,idx_sel_list,x_test_ori,vec_serial=[],vec_local=[],type_id=0):
 
 		# load serial and feature vectors
-		# self.prep_data_2_sub2(type_id1=type_id1,keys=['test'],stride=1,type_id2=1,select_config=select_config)
-
-		# key1 = 'test'
-		# mtx_test = self.x[key1]
-		# idx_sel_list, y_ori, y, vec_serial, vec_local = self.local_serial_dict[key1]
 		ref_serial = idx_sel_list[:,1]
 		serial_1 = np.unique(vec_serial)
 		assert list(np.sort(ref_serial))==list(serial_1)
@@ -6042,58 +3032,6 @@ class _Base1(BaseEstimator):
 		return attention_vec1, idx_sel_list
 
 	# predict with context
-	def control_predict_1_ori(self,x_pre,y_pre,idx_sel_list,model,layer_name):
-
-		intermediate_layer = Model(inputs=model.input,
-								 outputs=model.get_layer(layer_name).output)
-
-		# sample_num = x_pre.shape[0]
-		# interval = 5000
-		# select_num = np.int(np.ceil(sample_num/interval))
-		# # select_num1 = select_num*interval
-		# # print(num_sample1,select_num,interval,select_num1)
-		# if select_num>1:
-		# 	t1 = np.arange(0,sample_num,interval)
-		# 	pos = np.vstack((t1,t1+interval)).T
-		# 	pos[-1][1] = sample_num
-		# 	print(sample_num,select_num,interval)
-		# 	print(pos)
-		# else:
-		# 	pos = [[0,sample_num]]
-		chrom = idx_sel_list[:,0]
-		serial = idx_sel_list[:,1]
-		chrom_vec = np.sort(np.unique(chrom))
-
-		list1, list2 = [], []
-		vec1 = []
-		for chrom_id in chrom_vec:
-			id1 = np.where(chrom==chrom_id)[0]
-			x = x_pre[id1]
-			y = y_pre[id1]
-
-			feature1 = intermediate_layer.predict(x)
-			y_predicted = model.predict(x)
-
-			serial1 = serial[:,1]
-			temp1 = np.asarray([chrom_id]*len(serial1))
-			serial_1 = np.hstack((temp1[:,np.newaxis],serial1)).T
-			list1.extend(serial_1)
-			list2.extend(feature1)
-
-			y_predicted = np.ravel(y_predicted[:,self.flanking])
-			y = np.ravel(y)
-
-			score1 = utility_1.score_2a(y,y_predicted)
-			print('predict',chrom_id,feature1.shape,y_predicted.shape)
-			print(score1)
-			vec1.append([chrom_id]+score1)
-
-		list1, list2 = np.asarray(list1), np.asarray(list2)
-		# print(list1.shape,list2.shape)
-
-		return list1, list2, vec1
-
-	# predict with context
 	def control_predict_1(self,x_pre,y_pre,idx_sel_list,vec_serial,vec_local,model,intermediate_layer,
 								batch_size,predict_type=1):
 
@@ -6133,9 +3071,6 @@ class _Base1(BaseEstimator):
 			y1 = y_pre[s1:s2]
 			print(i,s1,s2,x1.shape,y1.shape)
 
-			# if i>2:
-			# 	break
-
 			for t_layer_name in layer_name_list:
 				start = time.time()
 				intermediate_layer1, type_id = intermediate_layer[t_layer_name]
@@ -6161,12 +3096,7 @@ class _Base1(BaseEstimator):
 						t_feature = np.reshape(feature1,(-1,dim1,dim2))
 						t1 = np.unique(t_serial,return_index=True,return_inverse=True)
 						t_serial_local, t_id1 = t1[0], t1[1]
-						# t_feature_1 = t_feature[t_id1]	# retain unique serial
-						# id2 = (ref_serial[id1]<=0)
-						# t_id2 = t_id1[id2]
-						# dict1[t_layer_name][id1[id2]] = t_feature[t_id2]
-						print('t_serial_local',len(t_serial_local),len(t_id1))
-						print(t_serial_local[0:5],t_id1[0:5])
+						# print('t_serial_local',len(t_serial_local),len(t_id1))
 
 						assert np.max(np.abs(t_serial[t_id1]-t_serial_local))==0
 
@@ -6283,265 +3213,8 @@ class _Base1(BaseEstimator):
 		region_unit_size = 1
 		feature_dim = 4
 
-		if len(config)==0:
-			config = self.config.copy()
-
-			# units1=[50,50,50,50,1,25,25,1]
-			# units1=[50,50,50,25,50,25,0,0]
-			# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-			units1=[50,50,50,25,50,25,0,0]
-			# units1=[50,50,50,25,50,25,0,0]
-			# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-			# units1=[50,50,50,25,50,0,0,0]
-			units2=[50,50,50,25,50,0,0,0]
-
-			local_conv_list1 = [[64, 10, 5, 1, 2, 2, 0.2, 1],
-								[32, 5, 1, 1, 5, 5, 0.2, 1],
-								[16, 5, 1, 1, 5, 5, 0.2, 1]]
-
-			# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-			local_vec_1 = [32, 25, [], True, 0, 0]
-			attention2_local = 0
-			select2 = 1
-			concatenate_1, concatenate_2 = 0, 0
-			hidden_unit = 25
-			regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-			regularizer2_2 = 1e-05
-
-			# run_id: 232
-			if run_id==216:
-				regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[64, 10, 5, 1, 1, 1, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1],
-									[16, 5, 1, 1, 5, 5, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [32, 25, [], True, 0, 0]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif run_id==217:
-				regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[64, 10, 5, 1, 2, 2, 0.2, 1],
-									[32, 5, 1, 1, 4, 4, 0.2, 1],
-									[16, 5, 1, 1, 5, 5, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [32, 20, [], True, 0, 0]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif run_id==222:
-				regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[64, 10, 5, 1, 2, 2, 0.2, 1],
-									[32, 5, 1, 1, 10, 10, 0.2, 1]]
-				# local_conv_list_1 = [[128, 10, 5, 1, 1, 1, 0.2, 1],
-				# 					[32, 5, 1, 1, 2, 2, 0.2, 1],
-				# 					[32, 5, 1, 1, 10, 10, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [32, 25, [], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif run_id==223:
-				regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[128, 10, 5, 1, 2, 2, 0.2, 1],
-									[32, 5, 1, 1, 10, 10, 0.2, 1]]
-				# local_conv_list_1 = [[128, 10, 5, 1, 1, 1, 0.2, 1],
-				# 					[32, 5, 1, 1, 2, 2, 0.2, 1],
-				# 					[32, 5, 1, 1, 10, 10, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [25, 100, [64], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif run_id==230:
-				regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[64, 15, 5, 1, 2, 2, 0.2, 1],
-									[32, 7, 1, 1, 3, 3, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [25, 100, [64], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif run_id==231:
-				regularizer2, bnorm, activation = 1e-05, 1, 'relu'
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[64, 15, 5, 1, 2, 2, 0.2, 1],
-									[32, 7, 1, 1, 3, 3, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [25, 100, [64], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif (run_id==232) or ((run_id==236)):
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-				regularizer2_2 = 1e-05
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				local_conv_list_1 = [[100, 15, 10, 1, 1, 1, 0.2, 1],
-									[32, 7, 1, 1, 5, 5, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1],
-									[25, 3, 1, 1, 2, 2, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [20, 35, [], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 25
-
-			elif (run_id==233) or (run_id==234):
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-				regularizer2_2 = 1e-04
-				units1=[50,50,32,25,50,25,0,0]
-				units2=[50,50,32,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				# local_conv_list_1 = [[75, 15, 5, 1, 1, 1, 0.2, 1],
-				# 					[32, 7, 1, 1, 5, 5, 0.2, 1],
-				# 					[32, 5, 1, 1, 5, 5, 0.2, 1],
-				# 					[25, 3, 1, 1, 2, 2, 0.2, 1]]
-				local_conv_list_1 = [[100, 15, 5, 1, 1, 1, 0.2, 1],
-									[32, 7, 1, 1, 5, 5, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1],
-									[25, 3, 1, 1, 2, 2, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [20, 35, [], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 25
-
-			elif (run_id==237) or (run_id==238):
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-				regularizer2_2 = 1e-04
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				# local_conv_list_1 = [[75, 15, 5, 1, 1, 1, 0.2, 1],
-				# 					[32, 7, 1, 1, 5, 5, 0.2, 1],
-				# 					[32, 5, 1, 1, 5, 5, 0.2, 1],
-				# 					[25, 3, 1, 1, 2, 2, 0.2, 1]]
-				local_conv_list_1 = [[128, 15, 5, 1, 1, 1, 0.2, 1],
-									[32, 7, 1, 1, 5, 5, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1],
-									[25, 3, 1, 1, 2, 2, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [32, 64, [], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 32
-
-			elif (run_id==239) or (run_id==240):
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-				regularizer2_2 = 1e-04
-				units1=[50,50,32,25,50,25,0,0]
-				units2=[50,50,32,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				# local_conv_list_1 = [[75, 15, 5, 1, 1, 1, 0.2, 1],
-				# 					[32, 7, 1, 1, 5, 5, 0.2, 1],
-				# 					[32, 5, 1, 1, 5, 5, 0.2, 1],
-				# 					[25, 3, 1, 1, 2, 2, 0.2, 1]]
-				local_conv_list_1 = [[128, 15, 5, 1, 1, 1, 0.2, 1],
-									[32, 7, 1, 1, 5, 5, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1],
-									[32, 3, 1, 1, 2, 2, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [32, 50, [], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 25
-
-			elif run_id>500000:
-				# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-				regularizer2, bnorm, activation = 1e-04, 1, 'relu'
-				regularizer2_2 = 1e-05
-				units1=[50,50,50,25,50,25,0,0]
-				units2=[50,50,50,25,50,0,0,0]
-				# n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary
-				# local_conv_list_1 = [[75, 15, 5, 1, 1, 1, 0.2, 1],
-				# 					[32, 7, 1, 1, 5, 5, 0.2, 1],
-				# 					[32, 5, 1, 1, 5, 5, 0.2, 1],
-				# 					[25, 3, 1, 1, 2, 2, 0.2, 1]]
-				local_conv_list_1 = [[100, 15, 5, 1, 1, 1, 0.2, 1],
-									[32, 7, 1, 1, 5, 5, 0.2, 1],
-									[32, 5, 1, 1, 5, 5, 0.2, 1],
-									[25, 3, 1, 1, 2, 2, 0.2, 1]]
-
-				# feature_dim1, feature_dim2, feature_dim3, return_sequences_flag1, sample_local, pooling_local
-				local_vec_1 = [32, 50, [], True, 0, 1]
-				attention2_local = 0
-				select2 = 1
-				concatenate_1, concatenate_2 = 0, 1
-				hidden_unit = 25
-
-			else:
-				pass
-
-			local_conv_list1 = []
-			for t_conv_1 in local_conv_list_1:
-				n_filters, kernel_size1, stride, dilation_rate1, pool_length1, stride1, drop_out_rate, boundary = t_conv_1
-				conv_1 = [n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate]
-				local_conv_list1.append(conv_1)
-
-			config['feature_dim_vec'] = units1[2:]
-			config['feature_dim_vec_basic'] = units2[2:]
-			config.update({'local_conv_list1':local_conv_list1,'local_vec_1':local_vec_1})
-			config.update({'feature_dim':feature_dim})
-			config.update({'attention1':0,'attention2':1,'context_size':context_size,
-									'n_step_local_ori':n_step_local_ori})
-			config.update({'select2':select2,'attention2_local':attention2_local})
-			config.update({'concatenate_1':concatenate_1,'concatenate_2':concatenate_2})
-			config.update({'feature_dim':feature_dim,'output_dim':hidden_unit,'regularizer2_2':regularizer2_2})
-
-		else:
-			n_step_local_ori = config['n_step_local_ori']
-			local_conv_list1 = config['local_conv_list1']
+		n_step_local_ori = config['n_step_local_ori']
+		local_conv_list1 = config['local_conv_list1']
 
 		size1 = n_step_local_ori
 		for conv_1 in local_conv_list1:
@@ -6587,22 +3260,10 @@ class _Base1(BaseEstimator):
 					[32,25,25,1,0],[32,0,25,1,0],[32,25,0,1,0]]
 		hidden_unit,fc1_output_dim,fc2_output_dim,attention2_local,pooling_local = list1[sel_id]
 
-
 		if len(config)==0:
 			config = self.config.copy()
-
-			# units1=[50,50,50,50,1,25,25,1]
-			# units1=[50,50,50,25,50,25,0,0]
-			# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
 			units1=[50,50,50,25,50,25,0,0]
-			# units1=[50,50,50,25,50,25,0,0]
-			# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-			# units1=[50,50,50,25,50,0,0,0]
 			units2=[50,50,50,25,50,0,0,0]
-
-			# local_conv_list1 = [[64, 10, 5, 1, 2, 2, 0.2, 1],
-			# 					[32, 5, 1, 1, 5, 5, 0.2, 1],
-			# 					[16, 5, 1, 1, 5, 5, 0.2, 1]]
 
 			boundary = 1
 			# n_filters, kernel_size1, stride, regularizer2, dilation_rate1, boundary, bnorm, activation, pool_length1, stride1, drop_out_rate
@@ -6694,462 +3355,6 @@ class _Base1(BaseEstimator):
 		self.config['train_mode'] = train_mode
 		self.train = train_mode
 
-	def control_pre_test2_estimate1(self,file_path,file_prefix,run_id_load,model_path1,output_filename='',sel_id=0):
-
-		if self.train==1:
-			config = self.config_pre_1(self.run_id)
-			config_filename = 'config_%d'%(self.run_id)
-			np.save(config_filename,config,allow_pickle=True)
-		else:
-			config = self.load_config_1(run_id_load)
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample5(config)
-		# return -1
-
-		# print('loading weights...', model_path1)
-		# model.load_weights(model_path1)
-
-		self.x = dict()
-		self.idx = dict()
-		local_serial_dict = self.prep_data_2_sub1(file_path,file_prefix,type_id1=0,type_id2=0)
-		self.local_serial_dict = local_serial_dict
-
-		# key1 = 'train'
-		# self.local_serial_dict = {key1:[idx_sel_list, y_pre, vec_serial, vec_local]}
-		# self.prep_data_2_sub2(type_id1=0, keys=['train','valid','test'], stride=1)
-
-		stride = np.max([1,2*self.flanking-10])
-		# stride = 1
-		print(stride)
-		t_vec1 = [['train','valid'],['test'],['train','valid','test']]
-		key_vec = t_vec1[sel_id]
-		self.prep_data_2_sub2(type_id1=0, keys=key_vec, stride=stride, type_id=1)
-
-		# layer_name = ['activation1_pre_4','pooling_pre_4']
-		# layer_name_list = [['activation1_pre_4',0],['pooling_pre_4',0]]
-		# layer_name_list = [['activation1_pre_4',0],['activation1_pre_3',0]]
-		type_id = int(stride>1)
-		predict_type1 = type_id
-		layer_name_list = [['activation1_pre_4',type_id]]
-		intermediate_layer = dict()
-		for layer1 in layer_name_list:
-			# type_id: 0: local feature; 1: with context
-			layer_name, type_id = layer1
-			intermediate_layer1 = Model(inputs=model.input,
-								 outputs=model.get_layer(layer_name).output)
-			intermediate_layer[layer_name] = [intermediate_layer1,type_id]
-
-		# key1 = 'train'
-		# x_train_pre = self.x[key1]
-		# idx_sel_list_train, y_train_ori, y_train, vec_serial_train, vec_local_train = self.local_serial_dict[key1]
-		# x1 = x_pre[vec_local]
-		# print(key1,x1.shape,y1.shape)
-
-		batch_size = 500
-		# feature1, y_predicted1 = self.control_predict_1(x_train_pre,y_train,vec_local_train,model,intermediate_layer,batch_size=batch_size)
-		# print(feature1.shape, y_predicted1.shape)
-		# y_predicted_1 = np.ravel(y_predicted1[:,self.flanking])
-		# y1 = np.ravel(y_train[:,self.flanking])
-		# score1 = utility_1.score_2a(y1,y_predicted_1)
-		# print(key1,score1)
-
-		key_vec1 = ['train','valid','test']
-		type_id1 = [[0,0],[2,1],[1,1]]
-		list1 = []
-		dict1, dict2 = dict(), dict()
-		for layer1 in layer_name_list:
-			layer_name, type_id = layer1
-			dict1[layer_name] = []
-
-		num1 = len(key_vec1)
-		t_vec2 = [range(0,2),range(2,num1)]
-		for i in t_vec2[sel_id]:
-			list1 = []
-			dict1, dict2 = dict(), dict()
-			for layer1 in layer_name_list:
-				layer_name, type_id = layer1
-				dict1[layer_name] = []
-
-			key1 = key_vec1[i]
-			type_id, predict_type = type_id1[i]
-			y_predicted1, score1 = [], []
-			# idx_sel_list_1, y_ori, y1, vec_serial_1, vec_local_1 = self.local_serial_dict[key1]
-			idx_sel_list1,feature1,y_predicted1,y_predicted_1,vec_serial1,score1 = self.control_predict_local(key1,model,intermediate_layer,
-																				batch_size=batch_size,
-																				predict_type=predict_type,
-																				predict_type1=predict_type1)
-
-			print(key1,idx_sel_list1[0:5])
-			sample_num1 = len(idx_sel_list1)
-			print(sample_num1,len(idx_sel_list1),len(feature1),len(y_predicted1),len(score1))
-			t1 = np.asarray([type_id]*sample_num1)
-			idx_sel_list1 = np.hstack((idx_sel_list1,t1[:,np.newaxis]))
-			list1.extend(idx_sel_list1)
-
-			for layer1 in layer_name_list:
-				layer_name, type_id = layer1
-				f_mtx1 = np.asarray(feature1[layer_name],dtype=np.float32)
-				list_1 = dict1[layer_name]
-				list_1.extend(np.asarray(f_mtx1,dtype=np.float32))
-				dict1[layer_name] = list_1
-				print(key1,layer_name,f_mtx1.shape,len(list_1))
-			
-			dict2[key1] = [np.asarray(y_predicted1,dtype=np.float32),
-							np.asarray(y_predicted_1,dtype=np.float32),
-							vec_serial1,score1]
-
-			list1 = np.asarray(list1,dtype=np.int32)	# index list: chrom, serial, train_type_id: 0: train, 1: test, 2: valid
-
-			# if output_filename=='':
-			# 	output_filename = 'model%d_%s_predict1.h5'%(run_id_load,key1)
-			output_filename = 'model%d_%s_predict2.h5'%(run_id_load,key1)
-
-			with h5py.File(output_filename,'w') as fid:
-				fid.create_dataset("serial", data=list1, compression="gzip")
-				for layer1 in layer_name_list:
-					layer_name, type_id = layer1
-					f_mtx = np.asarray(dict1[layer_name],dtype=np.float32)
-					fid.create_dataset(layer_name, data=f_mtx, compression="gzip")
-
-				# for key1 in key_vec1:
-				# 	y_predicted, score_vec = dict2[key1]
-				# 	if len(y_predicted)>0:
-				# 		fid.create_dataset('%s_predict'%(key1), data=np.asarray(y_predicted), compression="gzip")
-				# 		fid.create_dataset('%s_score'%(key1), data=np.asarray(score_vec), compression="gzip")
-
-				y_predicted, y_predicted_1, vec_serial, score_vec = dict2[key1]
-				if len(y_predicted)>0:
-					print('writing to file',key1,len(y_predicted))
-					fid.create_dataset('%s_predict'%(key1), data=y_predicted, compression="gzip")
-					fid.create_dataset('%s_predict1'%(key1), data=y_predicted_1, compression="gzip")
-					fid.create_dataset('%s_serial'%(key1), data=vec_serial, compression="gzip")
-					fid.create_dataset('%s_score'%(key1), data=score_vec, compression="gzip")
-				else:
-					print(key1,len(y_predicted_1))
-
-		# key1 = 'valid'
-		# x_valid_pre = self.x[key1]
-		# idx_sel_list_valid, y_valid_ori, y_valid, vec_serial_valid, vec_local_valid = self.local_serial_dict[key1]
-		# # x2 = x_pre[vec_local]
-		# # print(key1,x2.shape,y2.shape)
-		# feature2, y_predicted2 = self.control_predict_1(x_valid_pre,y_valid,vec_local_valid,model,intermediate_layer,batch_size=batch_size)
-		# print(feature2.shape, y_predicted2.shape)
-		# y_predicted_2 = np.ravel(y_predicted2[:,self.flanking])
-		# y2 = np.ravel(y_valid[:,self.flanking])
-		# score2 = utility_1.score_2a(y2,y_predicted_2)
-		# print(key1,score2)
-
-		# return feature1, y_predicted_1, score1, config
-
-		return True
-
-	def control_pre_test2_1(self,path1,file_prefix,run_id_load,select_config={}):
-
-		# find the serial for the training, validation and test data
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=2,type_id2=1,select_config=select_config)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		stride = 1
-		type_id = int(stride>1)
-		self.prep_data_2_sub2(type_id1=2,keys=['train','valid'],stride=stride,type_id=type_id,
-								select_config=select_config)
-
-		# config1 = self.load_config_1(run_id_load)
-
-		# if 'n_step_local' in select_config:
-		# 	n_step_local1 = select_config['n_step_local']
-		# 	feature_dim1 = select_config['feature_dim1']
-		# else:
-		# 	n_step_local1 = config1['n_step_local']
-		# 	feature_dim1 = config1['feature_dim1']
-
-		n_step_local1 = select_config['n_step_local']
-		feature_dim1 = select_config['feature_dim1']
-
-		attention2_local = 0
-		print(n_step_local1,feature_dim1,attention2_local)
-		config = self.config_pre_2(n_step_local1,feature_dim1,attention2_local)
-		model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_train = np.asarray(mtx_train[vec_local_train])
-		y_train = np.asarray(y_train_ori)
-
-		x_valid = np.asarray(mtx_valid[vec_local_valid])
-		y_valid = np.asarray(y_valid_ori)
-
-		print(x_train.shape,y_train.shape)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 100
-		BATCH_SIZE = 32
-
-		start1 = time.time()
-		if self.train==1:
-			print('x_train, y_train', x_train.shape, y_train.shape)
-			earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=0, mode='auto')
-			checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False)
-			# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-			model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
-							callbacks=[earlystop,checkpointer])
-			# model.load_weights(MODEL_PATH)
-			model_path2 = '%s/model_%d_%d_%d.h5'%(self.path,run_id,type_id2,context_size)
-			model.save(model_path2)
-			model_path2 = MODEL_PATH
-			print('loading weights... ', model_path2)
-			model.load_weights(model_path2) # load model with the minimum training error
-		else:
-			# model_path1 = './mnt/yy3/test_29200.h5'
-			if model_path1!="":
-				MODEL_PATH = model_path1
-			print('loading weights... ', MODEL_PATH)
-			model.load_weights(MODEL_PATH)
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		return model
-
-	def control_pre_test2_2(self,path1,file_prefix,run_id_load,select_config={}):
-
-		# find the serial for the training, validation and test data
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=2,type_id2=1,select_config=select_config)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		stride = 1
-		type_id = int(stride>1)
-		self.prep_data_2_sub2(type_id1=2,keys=['train','valid'],stride=stride,type_id=type_id,
-								select_config=select_config)
-
-		# config1 = self.load_config_1(run_id_load)
-
-		# if 'n_step_local' in select_config:
-		# 	n_step_local1 = select_config['n_step_local']
-		# 	feature_dim1 = select_config['feature_dim1']
-		# else:
-		# 	n_step_local1 = config1['n_step_local']
-		# 	feature_dim1 = config1['feature_dim1']
-
-		n_step_local1 = select_config['n_step_local']
-		feature_dim1 = select_config['feature_dim1']
-
-		attention2_local = 0
-		print(n_step_local1,feature_dim1,attention2_local)
-		config = self.config_pre_2(n_step_local1,feature_dim1,attention2_local)
-
-		config_filename = 'config_%d'%(self.run_id)
-		np.save(config_filename,config,allow_pickle=True)
-
-		model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-
-		mtx_train = self.x['train']
-		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
-
-		mtx_valid = self.x['valid']
-		idx_sel_list_valid, y_valid_ori_1, y_valid_ori, vec_serial_valid, vec_local_valid = self.local_serial_dict['valid']
-
-		train_num1, valid_num1 = len(y_train_ori), len(y_valid_ori)
-		print('train',len(idx_sel_list_train),len(y_train_ori),mtx_train.shape)
-		print('valid',len(idx_sel_list_valid),len(y_valid_ori),mtx_valid.shape)
-
-		x_valid = mtx_valid[vec_local_valid]
-		y_valid = y_valid_ori
-
-		# x_valid, y_valid = np.asarray(x_valid), np.asarray(y_valid)
-		print(x_valid.shape,y_valid.shape)
-
-		type_id2 = 2
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		n_epochs = 1
-		BATCH_SIZE = 32
-		n_step_local = n_step_local1
-		flanking = self.flanking
-		context_size = 2*flanking+1
-
-		epoch_id, local_id = 0, 0
-		if self.train==2:
-			model_path1 = self.config['model_path1']
-			epoch_id, local_id = self.config['train_pre_epoch']
-			print('loading weights...', model_path1)
-			model.load_weights(model_path1)
-
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=1, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False)
-
-		num_sample1 = 1
-		if 'interval' in self.config:
-			interval = self.config['interval']
-		else:
-			interval = 15000
-		select_num = np.int(np.ceil(train_num1/interval))
-		# select_num1 = select_num*interval
-		# print(num_sample1,select_num,interval,select_num1)
-		if select_num>1:
-			t1 = np.arange(0,train_num1,interval)
-			pos = np.vstack((t1,t1+interval)).T
-			pos[-1][1] = train_num1
-			print(train_num1,select_num,interval)
-			print(pos)
-		else:
-			pos = [[0,train_num1]]
-
-		start2 = time.time()
-		train_id_1 = np.arange(train_num1)
-		valid_id_1 = np.arange(valid_num1)
-		np.random.shuffle(valid_id_1)
-		cnt1 = 0
-		mse1 = 1e5
-		decay_rate = 0.95
-		decay_step = 1
-		init_lr = self.config['lr']
-
-		for i1 in range(30):
-
-			# self.config['lr'] = init_lr*((decay_rate)**(int(i1/decay_step)))
-			np.random.shuffle(train_id_1)
-			if i1<epoch_id:
-				continue
-			
-			start1 = time.time()
-
-			valid_num2 = 5000
-			num2 = np.min([valid_num1,valid_num2])
-			valid_id2 = valid_id_1[0:num2]
-			x_valid1, y_valid1 = x_valid[valid_id2], y_valid[valid_id2]
-			x_valid1, y_valid1 = x_valid, y_valid
-
-			for l in range(select_num):
-
-				if (i1<=epoch_id) and (l<local_id):
-					continue
-
-				s1, s2 = pos[l]
-				print(l,s1,s2)
-				sel_id = train_id_1[s1:s2]
-
-				x_train = mtx_train[vec_local_train[sel_id]]
-				y_train = y_train_ori[sel_id]
-
-				x_train, y_train = np.asarray(x_train), np.asarray(y_train)
-				print(x_train.shape,y_train.shape)
-				n_epochs = 1
-
-				train_num = x_train.shape[0]
-				print('x_train, y_train', x_train.shape, y_train.shape)
-				print('x_valid, y_valid', x_valid1.shape, y_valid1.shape)
-				
-				# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-				model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid1,y_valid1],
-									callbacks=[earlystop,checkpointer])
-				
-				# model.load_weights(MODEL_PATH)
-				model_path2 = '%s/model_%d_%d_%d_%d_%d.h5'%(self.path,self.run_id,type_id2,context_size,i1,l)
-				model.save(model_path2)
-				# model_path2 = MODEL_PATH
-				# if i%5==0:
-				# 	print('loading weights... ', MODEL_PATH)
-
-				if l%5==0:
-					print('loading weights... ', model_path2)
-				# 	model.load_weights(MODEL_PATH) # load model with the minimum training error
-					y_predicted_valid1 = model.predict(x_valid)
-					y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-					temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-					print(temp1)
-
-				# print('loading weights... ', model_path2)
-				# model.load_weights(model_path2) # load model with the minimum training error
-
-			print('loading weights... ', model_path2)
-			model.load_weights(model_path2) # load model with the minimum training error
-
-			y_predicted_valid1 = model.predict(x_valid)
-			y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-			temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-			print([i1,l]+list(temp1))
-			t_mse1 = temp1[0]
-
-			if np.abs(t_mse1-mse1)<self.min_delta:
-				cnt1 += 1
-			else:
-				cnt1 = 0
-
-			if t_mse1 < mse1:
-				mse1 = t_mse1
-
-			if cnt1>=self.step:
-				break
-
-		stop1 = time.time()
-		print(stop1-start1)
-
-		print('loading weights... ', MODEL_PATH)
-		model.load_weights(MODEL_PATH) # load model with the minimum training error
-		y_predicted_valid1 = model.predict(x_valid)
-		y_predicted_valid = np.ravel(y_predicted_valid1[:,flanking])
-		temp1 = score_2a(np.ravel(y_valid[:,flanking]), y_predicted_valid)
-		print(temp1)
-
-		return model
-
-	# test mode 
-	def control_pre_test2_2_1(self,path1,file_prefix,run_id_load,select_config={}):
-
-		# find the serial for the training, validation and test data
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=2,type_id2=1,select_config=select_config)
-
-		# find feature vectors with the serial
-		self.x = dict()
-		self.idx = dict()
-		stride = 1
-		type_id = int(stride>1)
-		type_id1 = 2
-		# self.prep_data_2_sub2(type_id1=type_id1,keys=['test'],stride=stride,type_id=type_id,
-		# 						select_config=select_config)
-
-		n_step_local1 = select_config['n_step_local']
-		feature_dim1 = select_config['feature_dim1']
-
-		attention2_local = 0
-		print(n_step_local1,feature_dim1,attention2_local)
-		config = self.config_pre_2(n_step_local1,feature_dim1,attention2_local)
-		model = utility_1.get_model2a1_attention_1_2_2_sample2(config)
-		self.model = model
-
-		MODEL_PATH = 'test%d.h5'%(self.run_id)
-		
-		# model_path1 = self.config['model_path1']
-		if os.path.exists(MODEL_PATH)==True:
-			print('loading weights...', MODEL_PATH)
-			model.load_weights(MODEL_PATH)
-		else:
-			print('model file does not exist',MODEL_PATH)
-			return -1
-
-		y_predicted_test, y_test, idx_sel_list_test, predicted_attention_test, score_vec1, score_dict1 = self.test_pre_1(type_id1=type_id1,est_attention=0,select_config=select_config)
-
-		file_path_1 = 'vbak2_pred6_1_local'
-		output_filename = '%s/test_%d_%d'%(file_path_1,self.run_id,run_id_load)
-		self.output_predict_1(idx_sel_list_test, y_predicted_test, y_test, predicted_attention_test, 
-							score_vec1, score_dict1, output_filename)
-
-		return model
-
 	def get_model_sub1(self,model_type_id,context_size,config):
 
 		print(model_type_id)
@@ -7204,15 +3409,11 @@ class _Base1(BaseEstimator):
 
 		return model
 
-
 	# training and prediction with sequence features
 	def control_pre_test3(self,path1,file_prefix,model_path1='',type_id=-1):
 
 		self.file_path, self.file_prefix = path1, file_prefix
 		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
-
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
 
 		# find feature vectors with the serial
 		self.x = dict()
@@ -7220,13 +3421,8 @@ class _Base1(BaseEstimator):
 		self.prep_data_2_sub2(type_id1=1,keys=['train','valid'],stride=1)
 
 		config = self.config.copy()
-		# units1=[50,50,50,50,1,25,25,1]
-		# units1=[50,50,50,25,50,25,0,0]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
 		units1=[50,50,50,25,50,25,0,0]
 		config['feature_dim_vec'] = units1[2:]
-		# n_filter1, dim1, n_filter2, dim2, n_local_conv, concat = feature_dim_vec1[0:6]
-		# units1=[50,50,50,25,50,25,0,0]
 		config['feature_dim_vec_basic'] = units1[2:]
 
 		config['attention1']=0
@@ -7243,9 +3439,6 @@ class _Base1(BaseEstimator):
 			model_type_id = 0
 
 		model = self.get_model_sub1(model_type_id,context_size,config)
-
-		# model = utility_1.get_model2a1_word()
-		# return -1
 
 		mtx_train = self.x['train']
 		idx_sel_list_train, y_train_ori_1, y_train_ori, vec_serial_train, vec_local_train = self.local_serial_dict['train']
@@ -7423,7 +3616,6 @@ class _Base1(BaseEstimator):
 		interval=5000
 		y_predicted_test, y_test, idx_sel_list_test, predicted_attention_test, score_vec1, score_dict1 = self.test_pre_1(type_id1=type_id1,type_id=type_id,interval=interval,
 																															est_attention=est_attention,select_config={})
-
 		if output_filename=='':
 			# output_filename = 'test_%d_%d'%(self.run_id,self.run_id)
 			# for the simulation mode
@@ -7466,14 +3658,12 @@ class _Base1(BaseEstimator):
 		self.file_path, self.file_prefix = path1, file_prefix
 		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
 
-
 	# training and prediction with sequence features
 	# important loci estimated compared with sepcific elements: ERCEs
 	def control_pre_test3_predict_sel2(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
 
 		self.file_path, self.file_prefix = path1, file_prefix
 		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
-
 
 	def control_pre_test3_1(self,path1,file_prefix,model_path1=''):
 
@@ -7924,11 +4114,6 @@ class _Base1(BaseEstimator):
 
 		return seq_list
 
-	def sample_path_control(self):
-
-		x = 1
-
-		
 	# prepare sequencde data
 	# return x_train1_trans, y_signal_train1
 	def prep_data_sequence_1(self,select_config={}):
@@ -8093,19 +4278,6 @@ class _Base1(BaseEstimator):
 	# return x_train1_trans, y_signal_train1
 	def prep_data_sequence_2(self,pre_config,select_config={}):
 
-		# rng_state = np.random.get_state()
-		# if os.path.exists(filename1)==True:
-		# 	print("loading data...")
-		# 	data1 = np.load(filename1,allow_pickle=True)
-		# 	data_1 = data1[()]
-		# 	x_train1_trans, train_sel_list_ori = np.asarray(data_1['x1']), np.asarray(data_1['idx'])
-		# 	print('train_sel_list',train_sel_list_ori.shape)
-		# 	print('x_train1_trans',x_train1_trans.shape)
-		# else:
-		# 	print("data not found!")
-		# 	return
-
-		# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
 		if self.species_id=='mm10':
 			annot1 = '%s_%d'%(self.species_id,self.cell_type1)
 		else:
@@ -8403,7 +4575,6 @@ class _Base1(BaseEstimator):
 	# return x_train1_trans, y_signal_train1
 	def prep_data_sequence_kmer(self,kmer_size,output_filename='',filename_prefix='',chrom_vec=[],save_mode=1,load_type=1):
 
-		# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
 		if (os.path.exists(output_filename)) and (load_type==1):
 			with h5py.File(output_filename,'r') as fid:
 				ref_serial = fid["serial"][:]
@@ -8413,9 +4584,7 @@ class _Base1(BaseEstimator):
 				return f_list, ref_serial
 
 		if self.species_id=='mm10':
-			# annot1 = '%s_%d'%(self.species_id,self.cell_type1)
-			# filename1 = '/work/magroup/yy3/data1/replication_timing3/mouse/mm10_5k_seq_genome1'
-			file_path = '/work/magroup/yy3/data1/replication_timing3/mouse'
+			file_path = './mouse'
 			filename1 = '%s/mm10_5k_seq_genome%d_1.txt'%(file_path,self.cell_type1)
 			filename2 = '%s/mm10_5k_serial.bed'%(file_path)
 			if filename_prefix=='':
@@ -8425,8 +4594,7 @@ class _Base1(BaseEstimator):
 			if output_filename=='':
 				output_filename = 'test_%s_genome%d_kmer%d.h5'%(self.species_id,self.cell_type1,kmer_size)
 		else:
-			# annot1 = self.species_id
-			filename1 = '/work/magroup/yy3/data1/replication_timing3/hg38_5k_seq'
+			filename1 = './hg38_5k_seq'
 			filename2 = 'hg38_5k_serial.bed'
 			if filename_prefix=='':
 				filename_prefix = 'test_%s'%(self.species_id)
@@ -8434,9 +4602,6 @@ class _Base1(BaseEstimator):
 				chrom_vec = range(1,23)
 			if output_filename=='':
 				output_filename = 'test_%s_kmer%d.h5'%(self.species_id,kmer_size)
-
-		# f_list, ref_serial = utility_1.prep_data_sequence_kmer(filename1,kmer_size)
-		# print(kmer_size,f_list.shape,len(ref_serial))
 
 		f_list, ref_serial = utility_1.prep_data_sequence_kmer_chrom(filename1,filename2,kmer_size,
 																	chrom_vec=chrom_vec,
@@ -8455,8 +4620,6 @@ class _Base1(BaseEstimator):
 	# return x_train1_trans, y_signal_train1
 	def prep_data_sequence_kmer_transform(self,kmer_size,output_filename='',save_mode=1,ratio=1,select_config={}):
 
-		# train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
-		
 		if 'chrom_vec' in select_config:
 			chrom_vec = select_config['chrom_vec']
 		else:
@@ -8594,118 +4757,11 @@ class _Base1(BaseEstimator):
 		else:
 			annot1 = self.species_id
 
-	def per_sample_function1(self):
-
-		x = 1
-
-	def random_sample_function1(self,per_sample_function1):
-
-		x = 1
-
-	# estimate sample weight for each sequence
-	def update_learn(self):
-
-		# rng_state = np.random.get_state()
-		# if os.path.exists(filename1)==True:
-		# 	print("loading data...")
-		# 	data1 = np.load(filename1,allow_pickle=True)
-		# 	data_1 = data1[()]
-		# 	x_train1_trans, train_sel_list_ori = np.asarray(data_1['x1']), np.asarray(data_1['idx'])
-		# 	print('train_sel_list',train_sel_list_ori.shape)
-		# 	print('x_train1_trans',x_train1_trans.shape)
-		# else:
-		# 	print("data not found!")
-		# 	return
-
-		x_train, y_train = self.x['train'], self.y['train']
-		x_valid, y_valid = self.x['valid'], self.y['valid']
-		y_predicted_train = self.model.predict(x_train)
-		y_predicted_valid = self.model.predict(x_valid)
-
-		per_sample_probability_train = self.per_sample_function1(y_train,y_predicted_train)
-		t_random_idx_train = self.random_sample_function1(per_sample_probability_train)
-		id1 = self.idx['train']
-		random_idx_train = id1[t_random_idx_train]
-
-		per_sample_probability_valid = self.per_sample_function1(y_valid,y_predicted_valid)
-		t_random_idx_valid = self.random_sample_function1(per_sample_probability_valid)
-		id1 = self.idx['valid']
-		random_idx_valid = id1[t_random_idx_valid]
-
-		train_sel_list_ori = np.loadtxt('serial_encode1.txt',delimiter='\t')
-		train_sel_list, val_sel_list, test_sel_list = self.prep_training_test(train_sel_list_ori)
-
-		self.train_sel_list = train_sel_list_ori
-		
-		list1 = [train_sel_list,val_sel_list,test_sel_list]
-		# keys = ['train','valid','test']
-		keys = ['train','valid']
-		num1 = len(keys)
-		self.bin_size = 5000
-		seq_len = self.bin_size
-
-		if self.train==0:
-			for i1 in range(0,num1):
-				i = keys[i1]
-				self.x[i] = []
-				self.y[i] = self.y_signal[i]
-			return
-
-		for i1 in range(0,num1):
-			i = keys[i1]
-			idx_sel_list = list1[i1]
-
-			chrom1 = idx_sel_list[:,0]
-			num_sample1 = len(idx_sel_list)
-			chrom_vec = np.unique(chrom1)
-			data_mtx = np.zeros((num_sample1,seq_len,4),dtype=np.float32)
-			# data_mtx = []
-			serial2 = []
-
-			for t_chrom in chrom_vec:
-				b1 = np.where(chrom1==t_chrom)[0]
-				filename1 = 'chr%d_encoded1.h5'%(t_chrom)
-				# data1 = np.load(filename1,allow_pickle=True)
-				# data1 = data1[()]
-				# seq1 = np.asarray(data1['vec'])
-				# serial1 = data1['serial']
-
-				with h5py.File(filename1,'r') as fid:
-					serial1 = fid["serial"][:]
-					seq1 = fid["vec"][:]
-				
-				print(serial1.shape, seq1.shape)
-				id1 = mapping_Idx(serial1,idx_sel_list[b1,1])
-				b2 = np.where(id1<0)[0]
-				if len(b2)>0:
-					print('error!',t_chrom,len(b2))
-					return
-				data_mtx[b1] = seq1[id1]
-				# data_mtx.extend(seq1[id1])
-				serial2.extend(b1)
-				print(t_chrom,len(serial1),len(b1))
-				print(b1[0:20],idx_sel_list[b1,1])
-
-			# temp1 = np.asarray(data_mtx).copy()
-			# serial2 = np.asarray(serial2)
-			# temp1[serial2] = data_mtx
-			# self.x[i] = np.asarray(data_mtx)
-			self.x[i] = data_mtx
-			self.y[i] = self.y_signal[i]
-			print(keys[i1], self.x[i].shape, self.y[i].shape)
-
-		return True
-
 	# prepare data
 	def prep_test_data(self):
 
 		x_train1_trans = self.x_train1_trans
 		feature_dim_transform = self.feature_dim_transform
-
-		# train_id1, test_id1, y_signal_train1, y_signal_test, train1_sel_list, test_sel_list = self.generate_train_test_1(train_sel_list)
-
-		# self.feature_dim_transform = feature_dim_transform
-		# map_idx = mapping_Idx(serial_ori,serial)
 
 		idx = self.idx_list['test']
 		idx_sel_list = self.train_sel_list[idx]
@@ -8724,171 +4780,144 @@ class _Base1(BaseEstimator):
 
 		return True
 
-	def training(self):
-
-		"""
-		training
-
-		"""
-
-	def predict(self):
-
-		"""
-		predict
-
-		"""
-
-	def _loglikelihood(self,y,y_predicted,sigma=0.1):
-
-		"""
-		calculate log likelihood
-
-		"""
-
 	def get_model(self,config,context_size):
 
 		attention = self.attention
 		print(self.predict_context, self.attention)
 		if self.predict_context==1:
 			if attention==1:
-				if self.method==12:
-					print('get_model2a1_attention_1_1')
-					config['attention2']=0
-					model = get_model2a1_attention_1_1(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==15:
-					print('get_model2a1_attention_1_2')
-					model = get_model2a1_attention_1_2(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==16:
-					print('get_model2a1_attention_1_3')
-					model = get_model2a1_attention_1_3(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==17:
-					print('get_model2a1_attention_1_1')
-					config['attention2']=1
-					model = get_model2a1_attention_1_1(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==18:
-					print('get_model2a1_attention_1_2')
-					config['attention2']=1
-					model = get_model2a1_attention_1_2(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==19:
-					print('get_model2a1_attention_1_2_select')
-					config['attention1']=1
-					config['attention2']=1
-					model = get_model2a1_attention_1_2_select(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==20:
-					print('get_model2a1_attention_1_2_select')
-					config['attention1']=0
-					config['attention2']=1
-					model = get_model2a1_attention_1_2_select(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==21:
-					print('get_model2a1_attention_1_2_2')
-					config['attention1']=1
-					config['attention2']=1
-					model = get_model2a1_attention_1_2_2(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==22:
-					print('get_model2a1_attention_1_2_2')
-					config['attention1']=0
-					config['attention2']=1
-					# config['feature_dim_vec'] = [50,25,50,25,0,0]
-					model = get_model2a1_attention_1_2_2(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==23:
-					config['attention1']=1
-					print('get_model2a1_attention')
-					model = get_model2a1_attention1(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==24:
-					config['attention1']=0 
-					print('get_model2a1_attention')
-					model = get_model2a1_attention1(context_size,config)		# context self-attention model and prediction per position
-				elif self.method==31:
-					config['attention1']=1
-					config['attention2']=1
-					print('get_model2a1_attention1_1')
-					model = utility_1.get_model2a1_attention1_1(context_size,config)
-				elif self.method==35:
-					config['attention1']=0
-					config['attention2']=1
-					print('get_model2a1_attention1_1')
-					model = utility_1.get_model2a1_attention1_1(context_size,config)
-				elif self.method==32:
+				# if self.method==12:
+				# 	print('get_model2a1_attention_1_1')
+				# 	config['attention2']=0
+				# 	model = utility_1.get_model2a1_attention_1_1(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==15:
+				# 	print('get_model2a1_attention_1_2')
+				# 	model = utility_1.get_model2a1_attention_1_2(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==16:
+				# 	print('get_model2a1_attention_1_3')
+				# 	model = utility_1.get_model2a1_attention_1_3(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==17:
+				# 	print('get_model2a1_attention_1_1')
+				# 	config['attention2']=1
+				# 	model = utility_1.get_model2a1_attention_1_1(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==18:
+				# 	print('get_model2a1_attention_1_2')
+				# 	config['attention2']=1
+				# 	model = utility_1.get_model2a1_attention_1_2(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==19:
+				# 	print('get_model2a1_attention_1_2_select')
+				# 	config['attention1']=1
+				# 	config['attention2']=1
+				# 	model = utility_1.get_model2a1_attention_1_2_select(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==20:
+				# 	print('get_model2a1_attention_1_2_select')
+				# 	config['attention1']=0
+				# 	config['attention2']=1
+				# 	model = utility_1.get_model2a1_attention_1_2_select(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==21:
+				# 	print('get_model2a1_attention_1_2_2')
+				# 	config['attention1']=1
+				# 	config['attention2']=1
+				# 	model = get_model2a1_attention_1_2_2(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==22:
+				# 	print('get_model2a1_attention_1_2_2')
+				# 	config['attention1']=0
+				# 	config['attention2']=1
+				# 	# config['feature_dim_vec'] = [50,25,50,25,0,0]
+				# 	model = utility_1.get_model2a1_attention_1_2_2(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==23:
+				# 	config['attention1']=1
+				# 	print('get_model2a1_attention')
+				# 	model = utility_1.get_model2a1_attention1(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==24:
+				# 	config['attention1']=0 
+				# 	print('get_model2a1_attention')
+				# 	model = utility_1.get_model2a1_attention1(context_size,config)		# context self-attention model and prediction per position
+				# elif self.method==31:
+				# 	config['attention1']=1
+				# 	config['attention2']=1
+				# 	print('get_model2a1_attention1_1')
+				# 	model = utility_1.get_model2a1_attention1_1(context_size,config)
+				# elif self.method==35:
+				# 	config['attention1']=0
+				# 	config['attention2']=1
+				# 	print('get_model2a1_attention1_1')
+				# 	model = utility_1.get_model2a1_attention1_1(context_size,config)
+				if self.method==32:
 					config['attention1']=0
 					config['attention2']=1
 					config['select2']=0
-					print('get_model2a1_attention_1_2_2_sample')
+					# print('get_model2a1_attention_1_2_2_sample')
 					model = utility_1.get_model2a1_attention_1_2_2_sample(context_size,config)
 				elif self.method==52:
 					config['attention1']=0
 					config['attention2']=1
 					config['select2']=1
-					print('get_model2a1_attention_1_2_2_sample')
+					# print('get_model2a1_attention_1_2_2_sample')
 					model = utility_1.get_model2a1_attention_1_2_2_sample(context_size,config)
 				elif self.method==58:
 					config['attention1']=1
 					config['attention2']=1
 					config['select2']=1
 					config['sample_attention']=1
-					print('get_model2a1_attention1_1')
+					# print('get_model2a1_attention1_1')
 					model = utility_1.get_model2a1_attention_1_2_2_sample(context_size,config)
 				elif self.method==60:
 					config['attention1']=1
 					config['attention2']=0
 					config['select2']=1
 					config['sample_attention']=1
-					print('get_model2a1_attention1_1')
+					# print('get_model2a1_attention1_1')
 					model = utility_1.get_model2a1_attention_1_2_2_sample(context_size,config)
 				elif self.method==62:
 					config['attention1']=1
 					config['attention2']=0
-					print('get_model2a1_convolution')
+					# print('get_model2a1_convolution')
 					model = utility_1.get_model2a1_convolution(config)
-				elif self.method==51:
-					config['attention1']=0
-					config['attention2']=1
-					config['select2']=1
-					config['sample_attention']=0
-					print('get_model2a1_attention_1_2_2_sample')
-					model = utility_1.get_model2a1_attention_1_2_2_sample(context_size,config)
-				elif self.method==53:
-					config['attention1']=1
-					config['attention2']=1
-					config['select2']=1
-					config['sample_attention']=0
-					print('get_model2a1_attention1_1')
-					model = utility_1.get_model2a1_attention1_1(context_size,config)
-				elif self.method==55:
-					config['attention1']=0
-					config['attention2']=1
-					config['select2']=1
-					config['sample_attention']=0
-					print('get_model2a1_attention1_1')
-					model = utility_1.get_model2a1_attention1_1(context_size,config)
-				elif self.method==57:
-					config['attention1']=1
-					config['attention2']=0
-					config['select2']=1
-					config['sample_attention']=0
-					print('get_model2a1_attention_1_2_2_sample')
-					model = utility_1.get_model2a1_attention1_1(context_size,config)
+				# elif self.method==51:
+				# 	config['attention1']=0
+				# 	config['attention2']=1
+				# 	config['select2']=1
+				# 	config['sample_attention']=0
+				# 	# print('get_model2a1_attention_1_2_2_sample')
+				# 	model = utility_1.get_model2a1_attention_1_2_2_sample(context_size,config)
+				# elif self.method==53:
+				# 	config['attention1']=1
+				# 	config['attention2']=1
+				# 	config['select2']=1
+				# 	config['sample_attention']=0
+				# 	# print('get_model2a1_attention1_1')
+				# 	model = utility_1.get_model2a1_attention1_1(context_size,config)
+				# elif self.method==55:
+				# 	config['attention1']=0
+				# 	config['attention2']=1
+				# 	config['select2']=1
+				# 	config['sample_attention']=0
+				# 	model = utility_1.get_model2a1_attention1_1(context_size,config)
+				# elif self.method==57:
+				# 	config['attention1']=1
+				# 	config['attention2']=0
+				# 	config['select2']=1
+				# 	config['sample_attention']=0
+				# 	model = utility_1.get_model2a1_attention1_1(context_size,config)
 				else:
 					print('get_model2a1_attention')
 					model = utility_1.get_model2a1_attention(context_size,config)		# context self-attention model and prediction per position
 			else:
 				print('get_model2a1_sequential')
-				model = get_model2a1_sequential(context_size,config)	# context without attention and prediction per position
+				model = utility_1.get_model2a1_sequential(context_size,config)	# context without attention and prediction per position
 		else:
 			if self.method==56:
 				# config['attention1']=1
 				# config['attention2']=1
 				config['select2']=1
-				print('get_model2a1_attention_1_2_2_single')
 				model = utility_1.get_model2a1_attention_1_2_2_single(config)
 			elif (attention==1) and (self.method==2):
-				print('get_model2a1_attention_1')
-				model = get_model2a1_attention_1(context_size,config)	# context with attention from intermedicate layer
+				model = utility_1.get_model2a1_attention_1(context_size,config)	# context with attention from intermediate layer
 			elif (attention==2) and (self.method==3):
-				print('get_model2a1_attention_2')
-				model = get_model2a1_attention_2(context_size,config)	# context with attention from input
+				model = utility_1.get_model2a1_attention_2(context_size,config)	# context with attention from input
 			else:
-				print('get_model2a_sequential')
-				model = get_model2a_sequential(context_size,config)		# context without attention
+				model = utility_1.get_model2a_sequential(context_size,config)	# context without attention
 
 		return model
 
@@ -8997,15 +5026,10 @@ class _Base1(BaseEstimator):
 		L = self.flanking
 		run_id = self.run_id
 			
-		# x_test, y_test, vec_test, vec_test_local = sample_select2a(x_test1_trans, y_signal_test_ori, test_sel_list, tol, L)
-		# x_train, y_train, vec_train, vec_train_local = sample_select2a(x_train1_trans[idx_train], y_signal_train1_ori[idx_train], train_sel_list[idx_train], tol, L)
-		# x_valid, y_valid, vec_valid, vec_valid_local = sample_select2a(x_train1_trans[idx_valid], y_signal_train1_ori[idx_valid], train_sel_list[idx_valid], tol, L)
-		# x_test_1, y_test_1, vec_test1, vec_test1_local = sample_select2a(x_train1_trans[idx_test], y_signal_train1_ori[idx_test], train_sel_list[idx_test], tol, L)
 		x_train, y_train = self.x['train'], self.y['train']
 		x_valid, y_valid = self.x['valid'], self.y['valid']
 		print(x_train.shape,x_valid.shape,y_train.shape,y_valid.shape)
 
-		# x_train, x_valid, y_train, y_valid = train_test_split(x_train1, y_train1, test_size=0.2, random_state=42)
 		x_train = x_train.reshape(x_train.shape[0],x_train.shape[1]*x_train.shape[-1])
 		x_valid = x_valid.reshape(x_valid.shape[0],x_valid.shape[1]*x_valid.shape[-1])
 		y_train = y_train[:,L]
@@ -9071,25 +5095,11 @@ class _Base1(BaseEstimator):
 		return self.serial
 
 	###########################################################
-	## prediction
-
-	###########################################################
-	## feature dependent score and attetion
-
-
-	###########################################################
 	## loading data and data processing
 	# load local serial and signal
 	# input: filename1: genome position and signal file
 	def load_local_signal_1_1(self, filename1):
 
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path2,species_name)
-		# filename2a = 'test_seq_%s.1.txt'%(species_name)
-		# if header==None:
-		# 	file2 = pd.read_csv(filename1,header=header,sep='\t')
-		# else:
-		# 	file2 = pd.read_csv(filename1,sep='\t')
 		file2 = pd.read_csv(filename1,sep='\t')
 		colnames = list(file2)
 		# col1, col2, col3, col_serial = colnames[0], colnames[1], colnames[2], colnames[3]
@@ -9110,15 +5120,6 @@ class _Base1(BaseEstimator):
 	def load_local_signal_1(self, filename1, colnames, genome_file, chrom_num,
 								region_list=[], type_id2=0):
 
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path2,species_name)
-		# filename2a = 'test_seq_%s.1.txt'%(species_name)
-		# if header==None:
-		# 	file2 = pd.read_csv(filename1,header=header,sep='\t')
-		# else:
-		# 	file2 = pd.read_csv(filename1,sep='\t')
-		# chrom, start, stop, dict1 = self.load_local_signal_1(filename1)
-		# signal = dict1[colnames]
 		chrom, start, stop, signal = self.load_local_signal_1_1(filename1)
 		default = -10
 		b = np.where(signal!=default)[0]
@@ -9167,118 +5168,6 @@ class _Base1(BaseEstimator):
 
 		return True
 
-	# load local serial and signal
-	def load_local_signal_2(self, filename1, colnames, genome_file, region_list=[],type_id2=0):
-
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path2,species_name)
-		# filename2a = 'test_seq_%s.1.txt'%(species_name)
-		# if header==None:
-		# 	file2 = pd.read_csv(filename1,header=header,sep='\t')
-		# else:
-		# 	file2 = pd.read_csv(filename1,sep='\t')
-		# chrom, start, stop, dict1 = self.load_local_signal_1(filename1)
-		# signal = dict1[colnames]
-		chrom, start, stop, signal = self.load_local_signal_1_1(filename1)
-		default = -10
-		b = np.where(signal!=default)[0]
-		if 'tol_region_search' in self.config:
-			tol = self.config['tol_region_search']
-		else:
-			tol = 2
-
-		# if len(region_list)>0:
-		# 	t_region_list = []
-		# 	for t_region in region_list:
-		# 		t_chrom, t_start, t_stop = t_region[0], t_region[1], t_region[2]
-		# 		t_chrom1 = 'chr%s'%(t_chrom)
-		# 		t_region_len = (t_stop-t_start)/self.bin_size
-		# 		b1 = np.where(chrom==t_chrom1)[0]
-		# 		if (type_id2==1) or (t_region_len<2):
-		# 			t_start1 = np.max((0,t_start-tol*self.bin_size))
-		# 			t_stop1 = np.min((stop[b1][-1],t_stop+tol*self.bin_size))
-		# 			t_region_list.append([t_chrom,t_start1,t_stop1])
-
-		# 	region_list = t_region_list
-		# 	print(region_list)
-
-		# 	b1 = self.region_search(chrom,start,stop,region_list,type_id2=0,tol=0)
-		# 	print('region',len(b1))
-		# 	print(b1)
-		# 	b = np.setdiff1d(b,b1)
-
-		self.chrom, self.start, self.stop, self.signal = chrom[b], start[b], stop[b], signal[b]
-		
-		chrom_num = self.chrom_num
-		# filename1 = '/volume01/yy3/seq_data/dl/replication_timing3/mouse/mm10.chrom.sizes'
-		# filename1 = 'mm10.chrom.sizes'
-		filename1 = genome_file
-		serial_vec = generate_serial_local(filename1,self.chrom,self.start,self.stop,chrom_num)
-		self.serial = serial_vec
-		print('load local serial', self.serial.shape, self.signal.shape)
-
-		id1 = np.argsort(self.serial)
-		# self.chrom, self.start, self.stop, self.serial, self.signal = self.chrom[id1], self.start[id1], self.stop[id1], self.serial[id1], self.signal[id1]
-		self.local_serial_1(id1)
-
-		# if len(region_list)>0:
-		# 	id2 = self.region_search_boundary(self.chrom,self.start,self.stop,self.serial,region_list)
-		# 	self.region_boundary = self.serial[id2]
-
-		if len(region_list)>0:
-			id2, region_list = self.region_search_1(self.chrom,self.start,self.stop,self.serial,region_list,type_id2,tol)
-			# self.chrom, self.start, self.stop, self.serial, self.signal = self.chrom[id2], self.start[id2], self.stop[id2], self.serial[id2], self.signal[id2]
-			self.local_serial_1(id2)
-			print('region_list',len(self.serial),len(self.signal))
-
-			id3 = self.region_search_boundary(self.chrom,self.start,self.stop,self.serial,region_list)
-			print('region_search_boundary', id3[:,0], self.start[id3[:,1:3]],self.stop[id3[:,1:3]])
-			self.region_boundary = id3
-			print(self.serial[id3[:,1:3]])
-
-		fields = ['chrom','start','stop','serial','signal']
-		data1 = pd.DataFrame(columns=fields)
-		data1['chrom'], data1['start'], data1['stop'], data1['serial'], data1['signal'] = self.chrom, self.start, self.stop, self.serial, self.signal
-
-		# filename2 = 'local_rt_%s.txt'%(self.species_id)
-		filename2 = '%s.local_rt.1'%(filename1)
-		data1.to_csv(filename2,index=False,sep='\t')
-
-		# self.signal = self.signal_normalize(self.signal,[0,1])
-		if self.chrom_num>0:
-			chrom_num = self.chrom_num
-			chrom_vec = [str(i) for i in range(1,chrom_num+1)]
-		else:
-			chrom_vec = np.unique(self.chrom)
-			chrom_num = len(chrom_vec)
-
-		# previous signal scaling
-		# self.signal_pre = self.signal.copy()
-		# self.signal = self.signal_normalize(self.signal, [0,1])
-		
-		# self.signal = self.signal_normalize_chrom(self.chrom,self.signal,chrom_vec,[0,1])
-		# self.signal_pre, id1, signal_vec1 = self.signal_normalize_chrom(self.chrom,self.signal,chrom_vec,[0,1])
-		# train_signal, id2, signal_vec2 = self.signal_normalize_chrom(self.chrom,self.signal,self.train_chromvec,[0,1])
-		# id_1 = mapping_Idx(id1,id2)
-		# self.signal = self.signal_pre.copy()
-		# self.signal[id_1] = train_signal
-
-		scale = self.scale
-		print(chrom_vec)
-		print(np.unique(self.chrom))
-		self.signal_pre1, id1, signal_vec1 = self.signal_normalize_chrom(self.chrom,self.signal,chrom_vec,scale)
-		self.local_serial_1(id1,type_id=1)
-
-		if not('train_signal_update' in self.config) or (self.config['train_signal_update']==1):
-			train_signal, id2, signal_vec2 = self.signal_normalize_chrom(self.chrom,self.signal,self.train_chromvec,scale)
-			id_1 = mapping_Idx(id1,id2)
-			self.signal = self.signal_pre1.copy()
-			self.signal[id_1] = train_signal
-		
-		print('signal',np.max(self.signal),np.min(self.signal),len(self.signal))
-
-		return self.serial, self.signal
-
 	# signal normalization
 	def signal_normalize(self,signal, scale):
 
@@ -9314,11 +5203,6 @@ class _Base1(BaseEstimator):
 
 	def signal_normalize_sub1(self,serial,scale):
 
-		# s1, s2 = scale[0], scale[1]
-		# train_signal, id2, signal_vec2 = self.signal_normalize_chrom(self.chrom,self.signal,self.train_chromvec,[0,1])
-		# id_1 = mapping_Idx(id1,id2)
-		# self.signal = self.signal_pre.copy()
-		# self.signal[id_1] = train_signal
 		s_min, s_max = self.signal_limit[0], self.signal_limit[1]
 		s1, s2 = scale[0], scale[1]
 
@@ -9388,15 +5272,6 @@ class _Base1(BaseEstimator):
 
 		scaled_signal = self.signal_scale(signal[id1],s_min,s_max,s1,s2)
 
-		# if 'signal_normalize_clip' in self.config and self.config['signal_normalize_clip']==1:
-		# 	scaled_signal[scaled_signal>s2] = s2
-		# 	scaled_signal[scaled_signal<s1] = s1
-		# else:
-		# 	tol1 = 0.5
-		# 	s2_1, s1_1 = s2+tol1, s1-tol1
-		# 	scaled_signal[scaled_signal>s2_1] = s2_1
-		# 	scaled_signal[scaled_signal<s1_1] = s1_1
-
 		if self.config['signal_plot']==1:
 			for i in chrom_vec:
 				### Plot the results
@@ -9411,9 +5286,6 @@ class _Base1(BaseEstimator):
 
 				interval1 = np.linspace(s_min-0.1,s_max+0.1,num=100)
 				plt.hist(t_signal, bins = interval1)
-				# plt.xlabel('epochs')
-				# plt.ylabel('RMSE')
-				# plt.ylim([0, 1])
 
 				plt.subplot(132)
 				plt.title('Signal 2')
@@ -9480,18 +5352,10 @@ class _Base1(BaseEstimator):
 	# query features of a specific set of samples
 	def load_feature_1(self,signal_ori,serial_ori,query_serial,feature_idx=-1):
 
-		# filename2 = '%s/Kmer%d/training_kmer_%s.npy'%(file_path,kmer_size,chrom_id)
-		# file1 = np.load(filename)
-		# t_signal_ori1 = np.asarray(file1)
 		trans_id1a = mapping_Idx(serial_ori,query_serial)	# mapped index
 		signal1 = signal_ori[trans_id1a]
 		if feature_idx!=-1:
 			signal1 = signal_ori[:,feature_idx]
-
-		# temp1 = serial[id1]
-		# n1 = len(temp1)
-		# temp2 = np.vstack(([int(chrom_id)]*n1,temp1)).T
-		# train_sel_list.extend(temp2)	# chrom_id, serial
 
 		return signal1
 
@@ -9503,694 +5367,6 @@ class _Base1(BaseEstimator):
 			signal1 = signal1[:,feature_idx]
 
 		return signal1
-
-	# select genomic loci provided by external data
-	def train_select(self,ref_serial):
-
-		# chrom	start	stop	serial	signal	num	max	min	0.9-quantile	Q1	Q2
-		data1 = self.external_data
-		colnames = list(data1)
-
-		# chrom, start, stop = data1[col1], data1[col2], data1[col3]
-		t_serial = np.asarray(data1[colnames[3]])
-
-		id1 = mapping_Idx(ref_serial,t_serial)
-		b2 = np.where(id1>=0)[0]
-		if len(b2)>0:
-			print("error! train_select", len(b2))
-
-		return id1[b2]
-
-	# load external data
-	def load_external_data(self,filename1,thresh,column_id=-1):
-
-		# chrom	start	stop	serial	signal	num	max	min	0.9-quantile	Q1	Q2
-		# data1 = self.external_data
-		# if filename1!="":
-		# 	data1 = pd.read_csv(filename1,sep='\t')
-		data1 = pd.read_csv(filename1,sep='\t')
-
-		# colnames = list(data1)
-		# col1, col2, col3, col4, col5 = colnames[0], colnames[1], colnames[2], colnames[3], colnames[-1]
-		# chrom, start, stop = data1[col1], data1[col2], data1[col3]
-		# serial1 = np.asarray(data1[colnames[3]])
-		# signal = data1[col5]
-		colnames = list(data1)
-		col5 = colnames[column_id]
-		value = np.asarray(data1[col5])
-
-		b1 = np.where(value>thresh)[0]
-		# t_serial = serial1[b1]
-		data1 = data1.loc[b1,colnames]
-
-		self.external_data = data1
-
-		return True
-
-	###########################################################
-	## prepare initiation zone data
-	def prep_data_init_impute(self,chrom,chrom_vec,value,mask,width=10,type_id=0):
-
-		b1 = np.where(mask>0)[0]
-		num1 = len(b1)
-		value1 = value.copy()
-		
-		for chrom_id in chrom_vec:
-			b1 = np.where(chrom==chrom_id)[0]
-			t_mask, t_value = mask[b1], value[b1]
-			t_value[t_mask==1] = -100
-			id1 = np.where(t_mask>0)[0]
-			id2 = np.where(t_mask<=0)[0]
-
-			temp1 = id1[1:]-id1[0:-1]
-			b2 = np.where(temp1>1)[0]
-
-			if len(b2)>0:
-				t_seq = list(np.vstack((b2[0:-1]+1,b2[1:])).T)
-				t_seq.insert(0,np.asarray([0,b2[0]]))
-				t_seq.append(np.asarray([b2[-1]+1,len(id1)-1]))
-				list2 = id1[np.asarray(t_seq)]
-			else:
-				continue
-
-			num1 = len(list2)
-			# print('prep_data_init_impute',chrom_id,num1)
-
-			for i in range(num1):
-				t1, t2 = list2[i]
-				middle = int((t1+t2)/2)+1
-
-				pos1, pos2 = np.max([0,t1-width]), np.min([len(b1)-1,t2+width])
-				if pos1<t1:
-					neighbor_value1 = t_value[pos1:t1]
-				else:
-					neighbor_value1 = t_value[(t2+1):(pos2+1)]
-				
-				if pos2>t2:
-					neighbor_value2 = t_value[(t2+1):(pos2+1)]
-				else:
-					neighbor_value2 = t_value[pos1:t1]
-
-				b_1 = (neighbor_value1!=-100)
-				b_2 = (neighbor_value2!=-100)
-
-				if type_id==0:
-					value1[b1[t1:middle]] = np.median(neighbor_value1[b_1])+np.random.uniform(0,0.1,middle-t1)
-					value1[b1[middle:(t2+1)]] = np.median(neighbor_value2[b_2])+np.random.uniform(0,0.1,t2-middle+1)
-				else:
-					value1[b1[t1:middle]] = np.mean(neighbor_value1[b_1])
-					value1[b1[middle:(t2+1)]] = np.mean(neighbor_value2[b_2])
-
-				# if t1>width:
-				# 	value1[b1[t1:middle]] = value[b1[t1-1]]
-				# else:
-				# 	value1[b1[t1:middle]] = value[b1[t2+1]]
-				# if t2<len(b1)-width:
-				# 	value1[b1[middle:(t2+1)]] = value[b1[t2+1]]
-				# else:
-				# 	value1[b1[middle:(t2+1)]] = value[b1[t1-1]]
-			# num1 = len(id1)
-			# for i in range(num1):
-			# 	distance = np.abs(id2-id1[i])
-			# 	id3 = np.argsort(distance)
-			# 	value1[b1[id1[i]]] = value[b1[id2[id3]]]
-
-		return value1
-
-	def prep_data_impute_neighbor(self,chrom,chrom_vec,value,mask,width=10,type_id1=0):
-
-		b1 = np.where(mask>0)[0]
-		num1 = len(b1)
-		# value1 = value.copy()
-		value1 = value
-		
-		if type_id1==0:
-			for chrom_id in chrom_vec:
-				b1 = np.where(chrom==chrom_id)[0]
-				t_mask, t_value = mask[b1], value[b1]
-				id1 = np.where(t_mask>0)[0]
-				id2 = np.where(t_mask<=0)[0]
-
-				# temp1 = id1[1:]-id1[0:-1]
-				# b2 = np.where(temp1>1)[0]
-
-				# t_seq = list(np.vstack((b2[0:-1]+1,b2[1:])).T)
-				# t_seq.insert(0,np.asarray([0,b2[0]]))
-				# t_seq.append(np.asarray([b2[-1]+1,len(id1)-1]))
-				# list2 = id1[np.asarray(t_seq)]
-
-				num1 = len(id1)
-				for i in range(num1):
-					distance = np.abs(id2-id1[i])
-					id3 = np.argsort(distance)
-					value1[b1[id1[i]]] = t_value[id2[id3]]
-		else:
-			size1 = value1.shape[1]
-			id1 = np.where(mask>0)[0]
-			print('imputation',len(id1))
-			value1[id1] = np.zeros((len(id1),size1),dtype=np.float32)
-
-			# num1 = len(list2)
-			# print('prep_data_init_impute',chrom_id,num1)
-
-			# for i in range(num1):
-			# 	t1, t2 = list2[i]
-			# 	middle = int((t1+t2)/2)+1
-
-			# 	pos1, pos2 = np.max([0,t1-width]), np.min([len(b1)-1,t2+width])
-
-			# 	if t1>width:
-			# 		value1[b1[t1:middle]] = value[b1[t1-1]]
-			# 	else:
-			# 		value1[b1[t1:middle]] = value[b1[t2+1]]
-			# 	if t2<len(b1)-width:
-			# 		value1[b1[middle:(t2+1)]] = value[b1[t2+1]]
-			# 	else:
-			# 		value1[b1[middle:(t2+1)]] = value[b1[t1-1]]
-
-		return value1
-
-	# initiation zone data
-	def prep_data_init_zone(self,filename1,region_data,label_list,width=10,type_id1=0,type_id2=0):
-
-		# data1 = pd.read_csv(region_filename,sep='\t')
-		data1 = region_data
-		region_chrom, region_start = np.asarray(data1['chrom']), np.asarray(data1['start'])
-		region_serial = np.asarray(data1['serial'])
-
-		label_name1 = 'label'
-		region_label = np.asarray(data1[label_name1].copy())
-
-		if type_id1==0:
-			label_name2 = 'predicted_attention'
-		else:
-			label_name2 = 'Q2'
-		data2 = pd.read_csv(filename1,sep='\t')
-		chrom1, serial1 = np.asarray(data2['chrom']), np.asarray(data2['serial'])
-		predicted_attention1 = np.asarray(data2[label_name2])
-
-		id1 = (region_label!=0)
-		# region_ori = (region_label!=0)
-		# flanking = (region_label<0)
-		# region_label1 = np.abs(region_label[id1])
-		# region_label_vec1 = np.unique(region_label1)
-
-		region_label_vec1 = label_list[:,0]
-		region_label_vec1_ori = label_list[:,1]
-		num_init_zone = len(region_label_vec1) # number of regions with region size unit
-
-		id2 = mapping_Idx(serial1,region_serial)
-		mask = (id2<0)
-		mask1 = (id2>=0)
-		local_attention1 = predicted_attention1[id2]
-
-		chrom_vec = np.unique(chrom1)
-		local_attention_impute = self.prep_data_init_impute(region_chrom,chrom_vec,
-														local_attention1,mask,width=width,type_id=type_id2)
-
-		
-		if ('shuffle_local' in self.config) and (self.config['shuffle_local']>0):
-			thresh1 = 0.75
-			if 'shuffle_local_thresh' in self.config:
-				thresh1 = self.config['shuffle_local_thresh']
-			if self.config['shuffle_local']==1:
-				np.random.shuffle(local_attention_impute)
-			elif self.config['shuffle_local']==3:
-				thresh_local_1 = np.quantile(local_attention1,thresh1)
-				id1 = np.where(local_attention_impute>thresh_local_1)[0]
-				min1, max1 = np.min(local_attention1), np.max(local_attention1)
-				local_attention_impute[id1] = min1+(max1-min1)*np.random.rand(len(id1))
-				print('shuffle_local',thresh_local_1,len(id1),min1,max1)
-			elif self.config['shuffle_local']==5:
-				thresh_local_1 = np.quantile(local_attention1,1-thresh1)
-				id1 = np.where(local_attention_impute<thresh_local_1)[0]
-				min1, max1 = np.min(local_attention1), np.max(local_attention1)
-				local_attention_impute[id1] = min1+(max1-min1)*np.random.rand(len(id1))
-				print('shuffle_local',thresh_local_1,len(id1),min1,max1)
-			else:
-				pass
-
-		data1['impute'] = local_attention_impute
-
-		# t_id1 = np.where(region_label1==region_label_vec1[0])[0]
-		# region_len_1 = len(t_id1)
-		# local_attention1 = local_attention1.reshape((num_init_zone,region_len_1))
-		
-		# region_len: label, group label, original length, context size, position:(chrom,start,stop),region_unit_len,select flag
-		region_len = np.zeros((num_init_zone,9),dtype=np.int32)
-		bin_size = 5000
-		list1, list2 = [], []
-		vec1 = np.zeros(num_init_zone)
-		cnt1, cnt2 = 0, 0
-		for i in range(num_init_zone):
-			t_label = region_label_vec1[i]
-			t_label_ori = region_label_vec1_ori[i]
-			# t_id1 = np.where(region_label1==t_label)[0]
-			t_id1 = np.arange(label_list[i,2],label_list[i,3]+1)
-			flanking_id1 = np.arange(label_list[i,4],label_list[i,5]+1)
-
-			t_attention1 = local_attention_impute[t_id1]
-			t_attention2 = local_attention_impute[flanking_id1]
-			# t_mask, t_flanking = mask[t_id1], flanking[t_id1]
-			t_mask1 = mask[t_id1]
-			t_mask2 = mask[flanking_id1]
-			region_len[i,0:8] = [t_label,t_label_ori,len(t_id1),len(flanking_id1)]+list(label_list[i,6:10])
-
-			b1 = np.where(t_mask2>0)[0] # without values
-			vec1[i] = len(b1)
-			if len(b1)<region_len[i,3]*bin_size*0.5:
-				# list1.append(t_attention1)
-				list1.append(t_attention2)
-				list2.append(t_label)
-				region_len[i,-1] = 1
-			else:
-				# print('prep_data_init',t_label,len(b1),region_len[i])
-				cnt2 += 1
-
-		cnt1 = num_init_zone - cnt2
-		# print(num_init_zone,cnt1,cnt2)
-
-		return list1,region_len,data1
-
-	# sample regions
-	def prep_data_init_sample(self,chrom,value,label,region_len,sample_ratio=5):
-
-		# id1 = np.where(label==0)[0]
-		id1 = np.where(label<=0)[0]
-		chrom1, value1 = chrom[id1], value[id1]
-		idx_sel_list = np.zeros((len(chrom1),2),dtype=np.int32)
-
-		# chrom_vec = np.unique(chrom1)
-		t_serial = np.arange(len(chrom))
-		num1 = len(chrom1)
-		chrom_num = 22
-		chrom_vec = np.arange(chrom_num+1)
-		mask = np.zeros(num1,dtype=np.int8)
-		for chrom_id in chrom_vec:
-			chrom_id1 = 'chr%d'%(chrom_id)
-			b1 = (chrom1==chrom_id1)
-			# chrom_id1 = int(chrom_id[3:])
-			idx_sel_list[b1,0] = chrom_id
-			mask[b1] = 1
-
-		b_1 = np.where(mask<0)[0]
-		if len(b_1)>0:
-			print('error!',chrom1[b_1])
-			return -1
-
-		idx_sel_list[:,1] = t_serial[id1]
-		# idx_sel_list = idx_sel_list[mask>0]
-		seq_list = generate_sequences(idx_sel_list, gap_tol=1, region_list=[])
-		seq_list = np.asarray(seq_list)
-		num2 = len(seq_list)
-		len1 = seq_list[:,1]-seq_list[:,0]+1
-		# t_region_len = int(np.median(region_len[:,1]))
-		t_region_len = int(np.median(region_len[:,3]))
-		b = np.where(len1>t_region_len)[0]
-		seq_list1 = seq_list[b]
-		print(seq_list1.shape)
-
-		start_pos_list = []
-		for t_region in seq_list1:
-			region_size = t_region[1]-t_region[0]+1
-			# print(t_region,region_size,t_region_len)
-			start_pos = t_region[0]+np.random.permutation(region_size-t_region_len-1)
-			start_pos_list.extend(start_pos)
-
-		start_pos_list = np.asarray(start_pos_list)
-		np.random.shuffle(start_pos_list)
-
-		sample_num1 = len(region_len)
-		sample_num2 = sample_ratio*sample_num1
-
-		pos1 = start_pos_list[0:sample_num2]
-		pos2 = pos1+t_region_len
-
-		size1 = t_region_len
-		t1 = np.outer(pos1,np.ones(size1))
-		t2 = np.int64(t1+np.outer(np.ones(sample_num2),list(range(size1))))
-		value2 = value1[t2]
-
-		print(value2.shape)
-
-		pos1_ori, pos2_ori = id1[pos1], id1[pos2]
-
-		return value2, (pos1_ori,pos2_ori)
-
-	# sample regions
-	def prep_data_init_sample_1(self,chrom,start_ori,stop_ori,serial,value,label,region_len,sample_ratio=5):
-
-		# id1 = np.where(label==0)[0]
-		id1 = np.where(label<=0)[0]
-		chrom1, value1 = chrom[id1], value[id1]
-		idx_sel_list = np.zeros((len(chrom1),4),dtype=np.int64)
-		t_serial = serial
-		idx_sel_list[:,1] = t_serial[id1]
-		idx_sel_list[:,2], idx_sel_list[:,3] = start_ori[id1], stop_ori[id1]
-
-		# chrom_vec = np.unique(chrom1)
-		# t_serial = np.arange(len(chrom))
-		num1 = len(chrom1)
-		chrom_num = 22
-		chrom_vec = np.arange(chrom_num+1)
-		mask = np.zeros(num1,dtype=np.int8)
-		for chrom_id in chrom_vec:
-			chrom_id1 = 'chr%d'%(chrom_id)
-			b1 = (chrom1==chrom_id1)
-			# chrom_id1 = int(chrom_id[3:])
-			idx_sel_list[b1,0] = chrom_id
-			mask[b1] = 1
-
-		idx_sel_list = idx_sel_list[mask>0]
-		seq_list = generate_sequences(idx_sel_list, gap_tol=1, region_list=[])
-		seq_list = np.asarray(seq_list)
-		num2 = len(seq_list)
-		len1 = seq_list[:,1]-seq_list[:,0]+1
-		print(np.unique(seq_list[:,0]))
-		print(seq_list.shape)
-		# t_region_len = int(np.median(region_len[:,1]))
-		# t_region_len = int(np.median(region_len[:,3]))
-		# b = np.where(len1>t_region_len)[0]
-		# seq_list1 = seq_list[b]
-		# print(seq_list1.shape)
-
-		region_len_unit = int(np.median(region_len[:,2]))
-		print('region_len_unit',region_len_unit)
-		flanking = int(np.median(region_len[:,3]-region_len[:,2])/2)
-		region_unit_len1 = region_len[:,-2]
-		# t1 = np.int64(region_len[:,3]/region_len_unit)
-		# b1 = np.where(region_unit_len1!=t1)[0]
-		# if len(b1)>0:
-		# 	print('error!',len(b1))
-		# 	return -1
-
-		group_label = region_len[:,1]
-		region_len_vec = np.unique(region_unit_len1)
-		region_len_vec1 = region_len_vec*region_len_unit+2*flanking
-		region_size1 = region_len_unit+2*flanking
-		region_len_num = len(region_len_vec)
-		print(region_len_num,region_len_vec,region_size1,flanking)
-		bin_size = self.bin_size
-		dict1 = dict()
-		num3 = len(region_len_vec1)
-
-		start1, start2 = 1, 1
-		list2 = []
-		for i in range(num3):
-			t_region_len = region_len_vec[i] # number of units
-			t_region_len1 = region_len_vec1[i]
-			start_pos_list = []
-			b = np.where(len1>t_region_len1)[0]
-			seq_list1 = seq_list[b]
-			print(seq_list1.shape)
-			for t_region in seq_list1:
-				region_size = t_region[1]-t_region[0]+1
-				# print(t_region,region_size,t_region_len)
-				start_pos = t_region[0]+np.random.permutation(region_size-t_region_len1)
-				start_pos_list.extend(start_pos)
-
-			start_pos_list = np.asarray(start_pos_list)
-			np.random.shuffle(start_pos_list)
-			dict1[t_region_len] = start_pos_list
-
-			b1 = np.where(region_unit_len1==t_region_len)[0]
-			t_group = np.unique(group_label[b1])
-
-			t_sample_num1 = len(t_group)
-			t_sample_num2 = int(t_sample_num1*sample_ratio)
-			print('t_region_len',len(b1),t_region_len,t_sample_num1,t_sample_num2)
-
-			t_pos1 = start_pos_list[0:t_sample_num2]
-			t1 = np.outer(t_pos1,np.ones(t_region_len))
-			t2 = np.int64(t1+np.outer(np.ones(t_sample_num2),np.arange(t_region_len)*region_len_unit))
-			t_group2 = np.outer(np.arange(t_sample_num2)+start2,np.ones(t_region_len))
-			t_group2 = np.ravel(t_group2)
-			t_pos1 = np.ravel(t2)
-			t_pos2 = t_pos1+region_size1-1
-			chrom_id = idx_sel_list[t_pos1,0]
-			t_sample_num2_unit = t_sample_num2*t_region_len
-			t_label2 = np.arange(t_sample_num2_unit)+start1
-			# temp1 = np.column_stack((idx_sel_list[t_pos1,1],idx_sel_list[t_pos2,1],t_label2,t_group2,
-			# 							chrom_id,idx_sel_list[t_pos1,3],idx_sel_list[t_pos2,4],
-			# 							[t_region_len]*t_sample_num2_unit))
-			temp1 = np.column_stack((id1[t_pos1],id1[t_pos2],t_label2,t_group2,
-										chrom_id,idx_sel_list[t_pos1,2],idx_sel_list[t_pos2,3],
-										[t_region_len]*t_sample_num2_unit))
-			list2.extend(temp1)
-			start1 += t_sample_num2_unit
-			start2 += t_sample_num2
-
-		list2 = np.asarray(list2)
-		pos1, pos2 = list2[:,0], list2[:,1]
-		t1 = np.outer(pos1,np.ones(region_size1))
-		sample_num2 = list2.shape[0]
-		t2 = np.int64(t1+np.outer(np.ones(sample_num2),list(range(region_size1))))
-		value2 = value[t2]
-
-		print(value2.shape)
-
-		return value2, list2
-
-	def func_sub1(self,t_start,t_stop,t_start1,t_stop1,pos,region_size1,t_region_len,flanking,bin_size):
-
-		temp1 = region_size1-t_region_len
-
-		if t_stop1>pos:
-			t_start1, t_stop1 = t_start-(flanking+temp1)*bin_size, t_stop+(flanking-temp1)*bin_size
-		else:
-			t_start1, t_stop1 = t_start-(flanking-temp1)*bin_size, t_stop+(flanking+temp1)*bin_size
-
-		return t_start1, t_stop1
-
-	# initiation zone label
-	# ref_filename: ref genome position data
-	# filename1: initiation zone data
-	def prep_data_init_1(self,ref_filename,filename1,output_filename,flanking=5,region_size_unit=10):
-
-		# data1 = pd.read_csv(ref_filename,header=None,sep='\t')
-		# data1.columns = ['chrom','start','stop','serial']
-		data1 = pd.read_csv(ref_filename,sep='\t',names=['chrom', 'start', 'stop', 'serial'])
-		data2 = pd.read_csv(filename1,header=None,sep='\t')
-
-		chrom, start, stop, serial = np.asarray(data1['chrom']), np.asarray(data1['start']), np.asarray(data1['stop']), np.asarray(data1['serial'])
-		region_chrom, region_start, region_stop = np.asarray(data2[0]), np.asarray(data2[1]), np.asarray(data2[2])
-
-		data_1 = data1.copy()
-		region_num = len(region_chrom)
-
-		if self.species_id=='hg38':
-			chrom_num = 22
-		else:
-			chrom_num = 19
-		# chrom_num = 22
-		chrom_vec = []
-		for i in range(1,chrom_num+1):
-			chrom_vec.append('chr%d'%(i))
-		print(chrom_vec)
-
-		mask1 = np.zeros(len(chrom),dtype=np.int8)
-		for chrom_id in chrom_vec:
-			b1 = (chrom==chrom_id)
-			mask1[b1] = 1
-
-		b2 = np.where(mask1>0)[0]
-		data_1 = data_1.loc[b2,:]
-		chrom, start, stop, serial = chrom[b2], start[b2], stop[b2], serial[b2]
-		region_num1 = len(chrom)
-		print(region_num,region_num1)
-
-		bin_size = 5000
-		self.bin_size = bin_size
-		region_size = bin_size*region_size_unit
-		region_size1 = region_size_unit+flanking*2
-		tol1 = flanking*bin_size
-		vec1 = np.zeros(region_num,dtype=np.int8)
-		label_list = []
-		label = np.zeros(region_num1,dtype=np.int32)
-
-		for i in range(region_num):
-			t_chrom, t_start, t_stop = region_chrom[i], region_start[i], region_stop[i]
-			id1 = np.where(chrom==t_chrom)[0]
-			t_chrom_id = int(t_chrom[3:])
-			region_len = (t_stop-t_start)/bin_size
-			# print(t_chrom,t_start,t_stop,region_len)
-
-			flag = 0
-			if region_len%region_size_unit!=0:
-				print(t_chrom,t_start,t_stop,region_len)
-				temp1 = int(region_len/region_size_unit)+1
-				t_stop = t_start + temp1*region_size_unit*bin_size
-				# t_start1, t_stop1 = t_start-tol1, t_stop1+tol1
-				# b1 = np.where((start[id1]<t_stop)&(stop[id1]>t_start))[0]
-				# b2 = np.where((start[id1]<t_stop1)&(stop[id1]>t_start1))[0]
-				# t_region_len = len(b2)
-
-				# if region_len<region_size_unit:
-				# 	continue
-
-				region_len = (t_stop-t_start)/bin_size
-
-				if region_len<region_size_unit:
-					# print(t_chrom,t_start,t_stop)
-					continue
-				elif region_len==region_size_unit:
-					flag = 1
-				else:
-					flag = 2
-
-			elif region_len==region_size_unit:
-				flag = 1
-			else:
-				flag = 2
-
-			# print('prep_data_init_1',t_chrom,t_start,t_stop,region_len,flag)
-
-			if flag==1:
-				t_start1, t_stop1 = t_start-tol1, t_stop+tol1
-
-				b1 = np.where((start[id1]<t_stop)&(stop[id1]>t_start))[0]
-				b2 = np.where((start[id1]<t_stop1)&(stop[id1]>t_start1))[0]
-
-				t_region_len = len(b2)
-				# print(t_region_len)
-
-				if t_region_len!=region_size1:
-					print('not equal to region_size1',t_chrom,t_start,t_stop,t_start1,t_stop1,t_region_len)
-
-					t_start1, t_stop1 = self.func_sub1(t_start,t_stop,t_start1,t_stop1,stop[id1[-1]],region_size1,t_region_len,flanking,bin_size)
-
-					# print(t_start1,t_stop1)
-					b2 = np.where((start[id1]<t_stop1)&(stop[id1]>t_start1))[0]
-					t_region_len = len(b2)
-					print(t_region_len)
-
-				vec1[i] = 1
-				t_label = i+1
-				b1, b2 = id1[b1], id1[b2]
-				label_list.append([i+1,i+1,b1[0],b1[-1],b2[0],b2[-1],t_chrom_id,t_start,t_stop,1])
-
-				label[b2[0]:(b2[-1]+1)] = -t_label
-				label[b1[0]:(b1[-1]+1)] = t_label
-
-			elif flag==2:
-
-				num2 = int(region_len/region_size_unit)
-
-				for i1 in range(num2):
-					t_start_1 = t_start+i1*region_size
-					t_stop_1 = t_start_1 + region_size
-
-					t_start1, t_stop1 = t_start_1-tol1, t_stop_1+tol1
-
-					b1 = np.where((start[id1]<t_stop_1)&(stop[id1]>t_start_1))[0]
-					b2 = np.where((start[id1]<t_stop1)&(stop[id1]>t_start1))[0]
-					t_region_len = len(b2)
-
-					if t_region_len!=region_size1:
-						# print('not equal to region_size1',t_chrom,t_start_1,t_stop_1,t_start1,t_stop1,t_region_len)
-						# continue
-
-						t_start1, t_stop1 = self.func_sub1(t_start_1,t_stop_1,t_start1,t_stop1,stop[id1[-1]],region_size1,t_region_len,flanking,bin_size)
-
-						# print(t_start1,t_stop1)
-						b2 = np.where((start[id1]<t_stop1)&(stop[id1]>t_start1))[0]
-						t_region_len = len(b2)
-						# print(t_region_len)
-
-					vec1[i] += 1
-					t_label = (i+1)+10000*i1
-					b1,b2 = id1[b1], id1[b2]
-					label_list.append([t_label,i+1,b1[0],b1[-1],b2[0],b2[-1],t_chrom_id,t_start_1,t_stop_1,num2])
-
-					if i1==0:
-						label[b2[0]:b1[0]] = -t_label
-					if i1==num2-1:
-						label[(b1[-1]+1):(b2[-1]+1)] = -t_label
-					label[b1[0]:(b1[-1]+1)] = t_label
-					
-			else:
-				pass
-
-		data_1['label'] = label
-		num1 = np.sum(label==0)
-		num2 = np.sum(label<0)
-		vec2 = np.asarray([num1,num2,region_num1-(num1+num2)])
-		print(vec2,vec2/region_num1)
-		data_1.to_csv(output_filename,index=False,sep='\t')
-
-		# data_1 = pd.read_csv(output_filename,sep='\t')
-
-		return np.asarray(label_list), vec1, data_1
-
-	def train_init_zone(self,ref_filename,filename1,input_filename,region_filename,flanking=5,region_size_unit=10,type_id1=0,type_id2=0):
-
-		# ref_filename = 'hg38_5k_serial.bed'
-		# filename1 = 'H1-hESC_allZ_coor.sorted.txt'
-		# region_filename = 'hg38_5k_serial_init.txt'
-		label_list, vec1, region_data = self.prep_data_init_1(ref_filename,filename1,region_filename,flanking=flanking,region_size_unit=region_size_unit)
-
-		# filename2 = 'test_vec2_10520_52_[5].1_0.1.txt'
-		filename1 = input_filename
-		feature_sample1,region_len,region_data = self.prep_data_init_zone(filename1,region_data,label_list,
-																width=10,type_id1=type_id1,type_id2=type_id2)
-		print('region_len',region_len.shape,region_len[0:5])
-		feature_sample1 = np.asarray(feature_sample1)
-		# print(feature_sample1.shape)
-		label_list = np.asarray(label_list)
-		pos_sample1 = (label_list[:,4],label_list[:,5]+1)
-
-		id1 = np.where(region_len[:,-1]==1)[0]
-		region_len1 = region_len[id1]
-
-		# np.savetxt('region_len.txt',region_len,fmt='%d',delimiter='\t')
-
-		chrom,value,label = np.asarray(region_data['chrom']), np.asarray(region_data['impute']), np.asarray(region_data['label'])
-		print(len(value),np.max(value),np.min(value),np.mean(value),np.median(value))
-		feature_sample2, pos_sample2 = self.prep_data_init_sample(chrom,value,label,region_len1,sample_ratio=1)
-
-		sample_num1, sample_num2 = len(feature_sample1), len(feature_sample2)
-		print(feature_sample1.shape,feature_sample2.shape)
-		
-		x = np.vstack((feature_sample1,feature_sample2))
-		y = np.asarray([1]*sample_num1 + [0]*sample_num2)
-
-		# sample_num = x.shape[0]
-		# id1 = np.random.permutation(sample_num)
-		# x = x[id1]
-		# y = y[id1]
-
-		x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, shuffle=True, random_state=0)
-
-		print('train',x_train.shape,y_train.shape,np.sum(y_train==1),np.sum(y_train==0))
-
-		print("xgboost classifier")
-		model = xgboost.XGBClassifier(colsample_bytree=1,
-				 gamma=0,    
-				 n_jobs=20,             
-				 learning_rate=0.1,
-				 max_depth=7,
-				 min_child_weight=1,
-				 n_estimators=1000,                                                                    
-				 reg_alpha=0,
-				 reg_lambda=1,
-				 subsample=1,
-				 seed=0)
-
-		print("fitting model...")
-		model.fit(x_train, y_train)
-
-		print('test',x_test.shape,y_test.shape,np.sum(y_test==1),np.sum(y_test==0))
-
-		y_prob = model.predict(x_test)
-		thresh = 0.5
-		y_pred = (y_prob>thresh)
-
-		accuracy, auc, aupr, precision, recall, F1 = utility_1.score_function(y_test, y_pred, y_prob)
-		print('test',accuracy,auc,aupr,precision,recall,F1)
-
-		vec2 = (accuracy, auc, aupr, precision, recall, F1)
-
-		return vec2
 
 	# chrom id of regions
 	def find_chrom_id(self,region_data,pos_sample):
@@ -10214,706 +5390,6 @@ class _Base1(BaseEstimator):
 			t_chrom_id1[b1] = int(t_chrom_id[3:])
 
 		return t_chrom_id1
-
-	# type_id1: predicted attention, Q2
-	# type_id2: imputation: median+noise, mean
-	# type_id3: convoluation boundary
-	def train_init_zone_1(self,ref_filename,ref_filename1,input_filename,region_filename,
-							run_id,run_id1,flanking=5,region_size_unit=10,
-							feature_dim2=5,
-							attention2=0,
-							type_id1=0,type_id2=0,type_id3=0,type_id5=0,select=0):
-
-		# ref_filename = 'hg38_5k_serial.bed'
-		# filename1 = 'H1-hESC_allZ_coor.sorted.txt'
-		# region_filename = 'hg38_5k_serial_init.txt'
-		label_list, vec1, region_data = self.prep_data_init_1(ref_filename,ref_filename1,region_filename,flanking=flanking,region_size_unit=region_size_unit)
-
-		# filename2 = 'test_vec2_10520_52_[5].1_0.1.txt'
-		filename1 = input_filename
-		# feature_sample1,region_len,region_data = self.prep_data_init_zone(filename1,region_filename,label_list,
-		# 														width=10,type_id1=type_id1,type_id2=type_id2)
-		if select==3:
-			type_id1=1
-		feature_sample1,region_len,region_data = self.prep_data_init_zone(filename1,region_data,label_list,
-																width=10,type_id1=type_id1,type_id2=type_id2)
-		print('region_len',region_len.shape,region_len[0:5])
-		feature_sample1 = np.asarray(feature_sample1)
-		# print(feature_sample1.shape)
-		label_list = np.asarray(label_list)
-		print(label_list)
-		pos_sample1 = (label_list[:,4],label_list[:,5]+1)
-
-		id1 = np.where(region_len[:,-1]==1)[0]
-		region_len1 = region_len[id1]
-
-		# np.savetxt('region_len.txt',region_len,fmt='%d',delimiter='\t')
-
-		chrom,value,label = np.asarray(region_data['chrom']), np.asarray(region_data['impute']), np.asarray(region_data['label'])
-		print(len(value),np.max(value),np.min(value),np.mean(value),np.median(value))
-		feature_sample2, pos_sample2 = self.prep_data_init_sample(chrom,value,label,region_len1,sample_ratio=1)
-
-		sample_num1, sample_num2 = len(feature_sample1), len(feature_sample2)
-		print(feature_sample1.shape,feature_sample2.shape)
-
-		chrom_id1 = self.find_chrom_id(region_data,pos_sample1)
-		chrom_id2 = self.find_chrom_id(region_data,pos_sample2)
-		print(len(chrom_id1),chrom_id1)
-		print(len(chrom_id2),chrom_id2)
-
-		print(select)
-		if select>=1:
-			feature_sample1_1, feature_sample2_1 = self.train_init_zone_2(region_data,pos_sample1,pos_sample2,chrom_num=22)
-			if select==2:
-				# t_feature_sample1 = np.random.rand(feature_sample1.shape[0],feature_sample1.shape[1])
-				# t_feature_sample2 = np.random.rand(feature_sample2.shape[0],feature_sample2.shape[1])
-				feature_sample1 = feature_sample1[:,:,np.newaxis]
-				feature_sample2 = feature_sample2[:,:,np.newaxis]
-				feature_sample1 = np.concatenate((feature_sample1,feature_sample1_1),axis=2)
-				feature_sample2 = np.concatenate((feature_sample2,feature_sample2_1),axis=2)
-			elif select==3:
-				size1 = feature_sample1_1.shape[-1]
-				print('select 3', size1)
-				t1 = np.repeat(feature_sample1[:,:,np.newaxis],size1,axis=2)
-				t2 = np.repeat(feature_sample2[:,:,np.newaxis],size1,axis=2)
-				feature_sample1 = t1*feature_sample1_1
-				feature_sample2 = t2*feature_sample2_1
-				print(np.max(t1),np.min(t1),np.max(t2),np.min(t2))
-				print(np.max(feature_sample1_1),np.max(feature_sample2_1),np.min(feature_sample1_1),np.min(feature_sample2_1))
-				print(feature_sample1.shape,feature_sample2.shape)
-				# return -1
-			else:
-				feature_sample1 = feature_sample1_1
-				feature_sample2 = feature_sample2_1
-		
-		x = np.vstack((feature_sample1,feature_sample2))
-		y = np.asarray([1]*sample_num1 + [0]*sample_num2)
-
-		# sample_num = x.shape[0]
-		# id1 = np.random.permutation(sample_num)
-		# x = x[id1]
-		# y = y[id1]
-
-		if x.ndim<3:
-			x = x[:,:,np.newaxis]
-		y = y[:,np.newaxis]
-
-		chrom_idvec = np.hstack((chrom_id1,chrom_id2))
-
-		if type_id5==0:
-			x_train_1, x_test, y_train_1, y_test = train_test_split(x, y, test_size=0.2, shuffle=True, random_state=0)
-			x_train, x_valid, y_train, y_valid = train_test_split(x_train_1, y_train_1, test_size=0.1, shuffle=True, random_state=0)
-		else:
-			chrom_num = np.max(chrom_idvec)
-			# train_chromvec = range(1,chrom_num+1,2)
-			# test_chromvec = range(2,chrom_num+1,2)
-			id_vec1 = np.random.permutation(chrom_num)+1
-			ratio1 = 0.8
-			train_num1 = int(chrom_num*ratio1)
-			train_chromvec = id_vec1[0:train_num1]
-			test_chromvec = id_vec1[train_num1:]
-			print(train_chromvec,test_chromvec)
-
-			id1, id2 = [], []
-			for t_chrom_id in train_chromvec:
-				b1 = np.where(chrom_idvec==t_chrom_id)[0]
-				id1.extend(b1)
-
-			for t_chrom_id in test_chromvec:
-				b2 = np.where(chrom_idvec==t_chrom_id)[0]
-				id2.extend(b2)
-
-			id1, id2 = np.asarray(id1), np.asarray(id2)
-			x_train_1, y_train_1 = x[id1], y[id1]
-			x_test, y_test = x[id2], y[id2]
-			x_train, x_valid, y_train, y_valid = train_test_split(x_train_1, y_train_1, test_size=0.1, shuffle=True, random_state=0)
-
-		print('train',x_train.shape,y_train.shape,np.sum(y_train==1),np.sum(y_train==0))
-		print('valid',x_valid.shape,y_valid.shape,np.sum(y_valid==1),np.sum(y_valid==0))
-
-		# return -1
-		# print("xgboost classifier")
-		# model = xgboost.XGBClassifier(colsample_bytree=1,
-		# 		 gamma=0,    
-		# 		 n_jobs=20,             
-		# 		 learning_rate=0.1,
-		# 		 max_depth=7,
-		# 		 min_child_weight=1,
-		# 		 n_estimators=1000,                                                                    
-		# 		 reg_alpha=0,
-		# 		 reg_lambda=1,
-		# 		 subsample=1,
-		# 		 seed=0)
-
-		config = dict()
-		config['feature_dim'] = x.shape[-1]
-		context_size = 2*flanking+region_size_unit
-		config['context_size'] = context_size
-		# conv_size_vec1, attention1, feature_dim2, dropout_rate2, pool_length1, activation1, activation2, activation_self, activation_basic
-		# dim1, conv_size1, dropout_rate1 = conv_size_vec1
-		conv_type = ['same','valid']
-		if select==0:
-			conv_size_vec1 = [16,3,0,conv_type[type_id3]]
-		else:
-			conv_size_vec1 = [16,3,0,conv_type[type_id3]]
-		pool_type = [[5,5],[2,2]]
-		pool_length1, stride1 = pool_type[type_id3]
-		# attention1, attention2 = 0, 1
-		attention1 = 0
-		dropout_rate2 = 0.2
-
-		layer_1 = [conv_size_vec1, attention1, feature_dim2, dropout_rate2, attention2, pool_length1, stride1, 'relu', 'tanh', 'tanh', 'sigmoid']
-
-		config['layer_1'] = layer_1
-		learning_rate = 0.001
-		# learning_rate = self.lr
-		config['lr'] = learning_rate
-		config['loss_function'] = 'binary_crossentropy'
-		model = utility_1.get_model2a1_basic3(config)
-
-		print('training')
-		MODEL_PATH = 'test_%d_%d.init1.h5'%(run_id,run_id1)
-		n_epochs = 100
-		BATCH_SIZE = 64
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=0, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False)
-		# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-		model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
-							callbacks=[earlystop,checkpointer])
-		# model.load_weights(MODEL_PATH)
-		# model_path2 = '%s/model_%d_%d.init1.h5'%(self.path,run_id,context_size)
-		# model.save(model_path2)
-
-		model_path2 = MODEL_PATH
-		print('loading weights... ', model_path2)
-		model.load_weights(model_path2) # load model with the minimum training error
-
-		print('test',x_test.shape,y_test.shape,np.sum(y_test==1),np.sum(y_test==0))
-
-		y_prob = model.predict(x_test)
-		y_prob = np.ravel(y_prob)
-		thresh = 0.5
-		y_pred = (y_prob>thresh)
-		y_test = np.ravel(y_test)
-
-		accuracy, auc, aupr, precision, recall, F1_score = utility_1.score_function(y_test, y_pred, y_prob)
-		print('test',accuracy,auc,aupr,precision,recall, F1_score)
-
-		vec2 = (accuracy, auc, aupr, precision, recall, F1_score)
-		vec2_1 = [y_test,y_prob]
-
-		return vec2, vec2_1
-
-	def train_init_zone_2(self,region_data,pos_sample1,pos_sample2,chrom_num=22):
-
-		ref_chrom, ref_serial = np.asarray(region_data['chrom']), np.asarray(region_data['serial'])
-
-		# chrom_vec = []
-		# for i in range(1,chrom_num+1):
-		# 	chrom_vec.append('chr%d'%(i))
-
-		# mask1 = np.zeros(len(ref_chrom),dtype=np.int8)
-		# for chrom_id in chrom_vec:
-		# 	b1 = (ref_chrom==chrom_id)
-		# 	mask1[b1] = 1
-
-		# b1 = (mask1>0)
-		# ref_chrom = ref_chrom[b1]
-		# ref_serial = ref_serial[b1]
-		print('ref serial',len(ref_serial))
-
-		file_prefix = self.config['file_prefix']
-		type_id2 = 0
-		x_train1_trans_ori, train_sel_list_ori = self.prep_data_sub1(self.path,file_prefix,type_id2,self.feature_dim_transform,load_type=1)
-		serial1 = train_sel_list_ori[:,1]
-		print(x_train1_trans_ori.shape,train_sel_list_ori.shape)
-
-		print(len(serial1),len(ref_serial),len(np.unique(serial1)),len(np.unique(ref_serial)))
-		id1 = mapping_Idx(serial1,ref_serial)
-		# t1 = np.column_stack((id1,ref_serial))
-		# np.save('test1.txt',t1,fmt='%d',delimiter='\t')
-		print(id1.shape,ref_serial.shape)
-		print(np.max(id1),np.min(id1))
-		mask = (id1<0)
-		b1 = np.where(mask>0)[0]
-		print('not mapping',len(b1),len(b1)/len(ref_serial))
-		x_train1_trans = x_train1_trans_ori[id1]
-		t_chrom, t_serial = ref_chrom[b1], ref_serial[b1]
-
-		value = x_train1_trans
-		chrom_vec = np.unique(ref_chrom)
-		value1 = self.prep_data_impute_neighbor(ref_chrom,chrom_vec,value,mask,width=10,type_id1=1)
-
-		dict1 = {'sample1':pos_sample1,'sample2':pos_sample2}
-		t_keys = ['sample1','sample2']
-		print(pos_sample1)
-		print(pos_sample2)
-
-		for key_1 in t_keys:
-			t_pos_sample = dict1[key_1]
-			pos1, pos2 = t_pos_sample[0], t_pos_sample[1]
-			sample_num = len(pos1)
-			size1 = pos2[1] - pos1[1]
-			print(np.max(pos1),np.max(pos2),sample_num,size1)
-			t1 = np.outer(pos1,np.ones(size1))
-			t2 = np.int64(t1+np.outer(np.ones(sample_num),list(range(size1))))
-			t_feature_sample = value1[t2]
-			key_2 = 'feature_%s'%(key_1)
-			dict1[key_2] = t_feature_sample
-			print(t_feature_sample.shape)
-			# t_feature_sample = np.zeros((t_feature_sample,size1,value1.shape[-1]),dtype=np.float32)
-			# for i in range(sample_num):
-			# 	t_pos1, t_pos2 = pos1[i], pos2[i]
-			# 	t_feature1 = value1[t_pos1:t_pos2]
-			# 	t_feature_sample[i] = t_feature1
-
-		feature_sample1, feature_sample2 = dict1['feature_sample1'], dict1['feature_sample2']
-		print(feature_sample1.shape,feature_sample2.shape)
-
-		return feature_sample1, feature_sample2
-
-	def train_test_init_1(self,x,y,chrom_idvec,group_label,type_id5=0,ratio=0.2):
-
-		dict1 = dict()
-		print('train_init_test_1',x.shape,y.shape,type_id5)
-		if type_id5==0:
-			group_label_vec = np.unique(group_label)
-			num1 = len(group_label_vec)
-			id1 = np.arange(num1)
-			# id_train_1, id_test, label_train_1, label_test = train_test_split(id1,group_label_vec,test_size=ratio,shuffle=True,random_state=0)
-			# id_train, id_valid, label_train, label_valid = train_test_split(id_train_1,label_train_1,test_size=0.1,shuffle=True,random_state=0)
-			x_train_1, x_test, y_train_1, y_test, id_train_1, id_test = utility_1.train_test_split_group(x,y,group_label,ratio=ratio)
-			group_label1 = group_label[id_train_1]
-			x_train, x_valid, y_train, y_valid, id_train, id_valid = utility_1.train_test_split_group(x_train_1,y_train_1,group_label1,ratio=0.1)
-			id_train, id_valid = id_train_1[id_train], id_train_1[id_valid]
-
-			dict1 = {'train':[x_train,y_train,id_train],'valid':[x_valid,y_valid,id_valid],'test':[x_test,y_test,id_test]}
-
-		elif type_id5==1:
-			chrom_num = int(np.max(chrom_idvec))
-			# train_chromvec = range(1,chrom_num+1,2)
-			# test_chromvec = range(2,chrom_num+1,2)
-			id_vec1 = np.random.permutation(chrom_num)+1
-			np.random.shuffle(id_vec1)
-			ratio1 = 1-ratio
-			train_num1 = int(chrom_num*ratio1)
-			train_chromvec = id_vec1[0:train_num1]
-			test_chromvec = id_vec1[train_num1:]
-			print(train_chromvec,test_chromvec)
-
-			temp1 = np.column_stack((y,chrom_idvec))
-			np.savetxt('test1.txt',temp1,fmt='%d',delimiter='\t')
-			id_train, id_valid, id_test = utility_1.train_test_index_chromosome(x,y,group_label,chrom_idvec,train_chromvec,test_chromvec)
-
-			x_train, x_valid, x_test = x[id_train], x[id_valid], x[id_test]
-			y_train, y_valid, y_test = y[id_train], y[id_valid], y[id_test]
-			dict1 = {'train':[x_train,y_train,id_train],'valid':[x_valid,y_valid,id_valid],'test':[x_test,y_test,id_test]}
-
-		elif type_id5==2:
-			group_kfold = GroupKFold(n_splits=5)
-			cnt1 = 0
-			for train_index, test_index in group_kfold.split(x, y, group_label):
-				x_train, y_train, group_label1 = x[train_index], y[train_index], group_label[train_index]
-				id_train, id_valid, y_train1, y_valid1, id1, id2 = utility_1.train_test_split_group(train_index,y_train,group_label1,ratio=0.1)
-				dict1[cnt1] = {'train':id_train,'valid':id_valid,'test':test_index}
-				cnt1 += 1
-		else:
-
-			chrom_num = np.max(chrom_idvec)
-			id_vec1 = np.random.permutation(chrom_num)+1
-			test_num1 = int(chrom_num*ratio)
-			n_fold, num2 = int(np.ceil(1/ratio)), chrom_num%(test_num1)
-			test_num_vec = np.asarray([test_num1]*n_fold)
-			for i in range(1,num2+1):
-				test_num_vec[-i] += 1
-
-			id1 = 0
-			for i in range(n_fold):
-				id2 = id1+test_num_vec[i]
-				test_chromvec = id_vec1[id1:id2]
-				train_chromvec = np.setdiff1d(id_vec1,test_chromvec)
-				print(train_chromvec,test_chromvec)
-				id1 = id2
-				id_train, id_valid, id_test = utility_1.train_test_index_chromosome(x,y,group_label,chrom_idvec,train_chromvec,test_chromvec)
-				dict1[i] = {'train':id_train,'valid':id_valid,'test':id_test}
-
-		return dict1
-
-	def train_init_zone_config(self,feature_dim,flanking,region_size_unit,
-									feature_dim2,attention2,type_id3,select):
-
-		config = self.config.copy()
-		config['feature_dim'] = feature_dim
-		context_size = 2*flanking+region_size_unit
-		config['context_size'] = context_size
-		# conv_size_vec1, attention1, feature_dim2, dropout_rate2, pool_length1, activation1, activation2, activation_self, activation_basic
-		# dim1, conv_size1, dropout_rate1 = conv_size_vec1
-		conv_type = ['same','valid']
-		if select==0:
-			conv_size_vec1 = [16,3,0,conv_type[type_id3]]
-			config['dim1'] = 8
-		else:
-			conv_size_vec1 = [16,3,0,conv_type[type_id3]]
-			config['dim1'] = 16
-		config['conv_size1'] = 3
-		pool_type = [[5,5],[2,2]]
-		pool_length1, stride1 = pool_type[type_id3]
-		# attention1, attention2 = 0, 1
-		# attention1 = 0
-		dropout_rate2 = 0.2
-		attention1 = self.config['attention1']
-		layer_1 = [conv_size_vec1, attention1, feature_dim2, dropout_rate2, attention2, pool_length1, stride1, 'relu', 'tanh', 'tanh', 'sigmoid']
-		config['layer_1'] = layer_1
-		# learning_rate = 0.001
-		# learning_rate = self.lr
-		# BATCH_SIZE = 64
-		# MODEL_PATH = 'test_%d_%d.init1.h5'%(run_id,run_id1)
-		# config.update({'lr':learning_rate,'loss_function':'binary_crossentropy','n_epochs':n_epochs,'batch_size':BATCH_SIZE})
-		config.update({'loss_function':'binary_crossentropy'})
-		config.update({'select':select,'conv_typeid':type_id3,'feature_dim2':feature_dim2,'attention1':attention1,'attention2':attention2})
-
-		return config
-
-	def train_init_zone_sub1(self,x_train,y_train,x_valid,y_valid,x_test,y_test,config):
-
-		print('training')
-
-		train_mode2 = 1
-		if 'train_mode2' in self.config:
-			train_mode2 = self.config['train_mode2']
-
-		if train_mode2==2:
-			model = utility_1.get_model2a1_basic3_sequential_config(config)
-		elif train_mode2==3:
-			select_config = self.config['select_config1']
-			select_config['feature_dim'] = x_train.shape[-1]
-			select_config['context_size'] = x_train.shape[1]
-			type_id3, feature_dim2, attention1, attention2 = config['conv_typeid'], config['feature_dim2'], config['attention1'], config['attention2']
-			select_config.update({'conv_typeid':type_id3,'feature_dim2':feature_dim2,'attention1':attention1,'attention2':attention2})
-			model = utility_1.get_model2a1_basic3_sequential(select_config)
-		else:
-			model = utility_1.get_model2a1_basic3(config)
-		print('training')
-
-		MODEL_PATH = config['model_path']
-		n_epochs = config['n_epochs']
-		BATCH_SIZE = config['batch_size']
-		earlystop = EarlyStopping(monitor='val_loss', min_delta=self.min_delta, patience=self.step, verbose=0, mode='auto')
-		checkpointer = ModelCheckpoint(filepath=MODEL_PATH, monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False)
-		# model.fit(x_train,y_train,epochs = n_epochs,batch_size = BATCH_SIZE,validation_data = [x_valid,y_valid],callbacks=[earlystop,checkpointer])
-		model.fit(x_train,y_train,epochs = n_epochs, batch_size = BATCH_SIZE, validation_data = [x_valid,y_valid],
-							callbacks=[earlystop,checkpointer])
-		# model.load_weights(MODEL_PATH)
-		# model_path2 = '%s/model_%d_%d.init1.h5'%(self.path,run_id,context_size)
-		# model.save(model_path2)
-
-		model_path2 = MODEL_PATH
-		print('loading weights... ', model_path2)
-		model.load_weights(model_path2) # load model with the minimum training error
-
-		y_valid_prob = model.predict(x_valid)
-		y_valid, y_valid_prob = np.ravel(y_valid), np.ravel(y_valid_prob)
-		precision, recall, thresholds = precision_recall_curve(y_valid, y_valid_prob)
-		# print(precision,recall,thresholds)
-		t_precision, t_recall = precision[1:], recall[1:]
-		t_f1_score = 2*t_precision*t_recall/(t_precision+t_recall+1e-12)
-		id1 = np.argmax(t_f1_score)
-		thresh = thresholds[id1+1]
-		thresh = np.mean([thresh,0.5])
-		print(thresh)
-
-		if len(x_test)>0:
-			y_test_prob = model.predict(x_test)
-			y_test_prob = np.ravel(y_test_prob)
-			# thresh = 0.5
-			y_test_pred = (y_test_prob>thresh)
-		else:
-			y_test_prob, y_test_pred = [], []
-
-		# print('test',x_test.shape,y_test.shape,np.sum(y_test==1),np.sum(y_test==0))
-		# y_prob = model.predict(x_test)
-		# y_prob, y_test = np.ravel(y_prob), np.ravel(y_test)
-		# thresh = 0.5
-		# y_pred = (y_prob>thresh)
-
-		return model, y_test_prob, y_test_pred, thresh
-
-	def train_init_zone_sub2(self,x_train,y_train,x_valid,y_valid,x_test,y_test,id_vec,group_label,config):
-
-		print('train',x_train.shape,y_train.shape,np.sum(y_train==1),np.sum(y_train==0))
-		print('valid',x_valid.shape,y_valid.shape,np.sum(y_valid==1),np.sum(y_valid==0))
-
-		print('test',x_test.shape,y_test.shape,np.sum(y_test==1),np.sum(y_test==0))
-		model, y_test_prob, y_test_pred, thresh  = self.train_init_zone_sub1(x_train,y_train,x_valid,y_valid,x_test,y_test,config)
-
-		y_test = np.ravel(y_test)
-		print(y_test.shape,y_test_pred.shape)
-		print(np.sum(y_test==y_test_pred),np.sum(y_test!=y_test_pred),thresh)
-		accuracy, auc, aupr, precision, recall, f1_score = utility_1.score_function(y_test, y_test_pred, y_test_prob)
-		print('test',accuracy,auc,aupr,precision,recall, f1_score)
-		vec2 = [accuracy, auc, aupr, precision, recall, f1_score]
-
-		thresh1 = 0.5
-		y_test_pred1 = y_test_prob>thresh1
-		accuracy, auc, aupr, precision, recall, f1_score = utility_1.score_function(y_test, y_test_pred1, y_test_prob)
-		print('test',accuracy,auc,aupr,precision,recall, f1_score)
-
-		id_test = id_vec[2]
-		accuracy1, auc1, aupr1, precision1, recall1, f1_score1 = utility_1.score_function_group(y_test, y_test_pred, y_test_prob, group_label[id_test])
-		print('test group',accuracy1,auc1,aupr1,precision1,recall1,f1_score1)
-
-		vec2_1 = [accuracy1, auc1, aupr1, precision1, recall1, f1_score1]
-
-		return vec2, vec2_1, (model, y_test_prob, y_test_pred, thresh)
-
-	def shuffle_local_1(self,x1,x2,sample_num1,sample_num2,thresh1=0.75):
-
-		if 'shuffle_local_thresh' in self.config:
-			thresh1 = self.config['shuffle_local_thresh']
-		num1, context_size = x1.shape[0], x1.shape[1]
-		t_max1, t_min1 = np.max(x1), np.min(x1)
-		t_max2, t_min2 = np.max(x2), np.min(x2)
-		thresh_1, thresh_2 = np.quantile(x1,thresh1), np.quantile(x1,1-thresh1)
-		print('shuffle_local_1',thresh_1,thresh_2,self.config['shuffle_local'])
-		id1 = []
-		if self.config['shuffle_local']==6:
-			size1 = x2.shape[-1]
-			id1 = (x1>thresh_1)
-			x2[id1] = t_min2 + (t_max2-t_min2)*np.random.rand(np.sum(id1),size1)
-		elif self.config['shuffle_local']==7:
-			size1 = x2.shape[-1]
-			id1 = (x1<thresh_1)
-			x2[id1] = np.zeros((np.sum(id1),size1))
-		elif self.config['shuffle_local']==8:
-			size1 = x2.shape[-1]
-			temp2 = np.random.rand(num1,context_size)
-			id1 = (temp2<thresh1)
-			x2[id1] = np.zeros((np.sum(id1),size1))
-		elif self.config['shuffle_local']==9:
-			id1 = (x1>thresh_1)
-			x1[id1] = t_min1 + (t_max1-t_min1)*np.random.rand(np.sum(id1))
-		elif self.config['shuffle_local']==10:
-			id1 = (x1<thresh_2)
-			x1[id1] = t_min1 + (t_max1-t_min1)*np.random.rand(np.sum(id1))
-		elif self.config['shuffle_local']==11:
-			temp2 = np.random.rand(num1,context_size)
-			id1 = (temp2<1-thresh1)
-			x1[id1] = t_min1 + (t_max1-t_min1)*np.random.rand(np.sum(id1))
-		else:
-			pass
-
-		print(np.sum(id1),sample_num1,sample_num2)
-		sample1, sample2 = x1[0:sample_num1], x1[sample_num1:]
-		sample1_1, sample2_1 = x2[0:sample_num1], x2[sample_num1:]
-
-		return sample1, sample2, sample1_1, sample2_1
-
-	# type_id1: predicted attention, Q2
-	# type_id2: imputation: median+noise, mean
-	# type_id3: convolution boundary: same, valid
-	def train_init_zone_1_1(self,ref_filename,ref_filename1,input_filename,region_filename,
-							celltype_id,
-							run_id,run_id1,flanking=5,region_size_unit=10,
-							feature_dim2=5,
-							attention2=0,
-							type_id1=0,type_id2=0,type_id3=0,
-							type_id5=1,
-							select=0):
-
-		# ref_filename = 'hg38_5k_serial.bed'
-		# filename1 = 'H1-hESC_allZ_coor.sorted.txt'
-		# region_filename = 'hg38_5k_serial_init.txt'
-		# label_list, vec1 = self.prep_data_init_1(ref_filename,ref_filename1,region_filename,flanking=flanking,region_size_unit=region_size_unit)
-		label_list, vec1, region_data = self.prep_data_init_1(ref_filename,ref_filename1,region_filename,flanking=flanking,region_size_unit=region_size_unit)
-
-		# filename2 = 'test_vec2_10520_52_[5].1_0.1.txt'
-		filename1 = input_filename
-		if select==3:
-			type_id1=1
-		feature_sample1,region_len,region_data = self.prep_data_init_zone(filename1,region_data,label_list,
-																width=10,type_id1=type_id1,type_id2=type_id2)
-		print('region_len',region_len.shape,region_len[0:5])
-		feature_sample1 = np.asarray(feature_sample1)
-		# print(feature_sample1.shape)
-		label_list = np.asarray(label_list)
-		print(label_list)
-		pos_sample1 = (label_list[:,4],label_list[:,5]+1)
-
-		id1 = np.where(region_len[:,-1]==1)[0]
-		region_len1 = region_len[id1]
-
-		# np.savetxt('region_len.txt',region_len,fmt='%d',delimiter='\t')
-
-		chrom,value,label = np.asarray(region_data['chrom']), np.asarray(region_data['impute']), np.asarray(region_data['label'])
-		start, stop, serial = np.asarray(region_data['start']), np.asarray(region_data['stop']), np.asarray(region_data['serial'])
-		print(len(value),np.max(value),np.min(value),np.mean(value),np.median(value))
-		feature_sample2, label_list2 = self.prep_data_init_sample_1(chrom,start,stop,serial,value,label,region_len1,sample_ratio=1)
-
-		label_list, label_list2 = np.int64(label_list), np.int64(label_list2)
-		pos_sample2 = (label_list2[:,0], label_list2[:,1]+1)
-		sample_num1, sample_num2 = len(feature_sample1), len(feature_sample2)
-		print(feature_sample1.shape,feature_sample2.shape,len(pos_sample1),len(pos_sample2))
-
-		group_label1, group_label2 = label_list[:,1], label_list2[:,3]
-		chrom_idvec1, chrom_idvec2 = label_list[:,6],label_list2[:,4]
-		# group_label_vec1, group_label_vec2 = np.unique(group_label1), np.unique(group_label2)
-		print(group_label1,group_label2)
-		print(np.unique(chrom_idvec1))
-		print(np.unique(chrom_idvec2))
-
-		print(select)
-		x1 = np.vstack((feature_sample1,feature_sample2))	# importance score
-
-		if select>=1:
-			feature_sample1_1, feature_sample2_1 = self.train_init_zone_2(region_data,pos_sample1,pos_sample2,chrom_num=22)
-			x2 = np.vstack((feature_sample1_1,feature_sample2_1))	# sequence feature
-
-		if ('shuffle_local' in self.config) and (self.config['shuffle_local']>0):
-			if select==0:
-				x2 = x1
-			feature_sample1, feature_sample2, feature_sample1_1, feature_sample2_1 = self.shuffle_local_1(x1,x2,sample_num1,sample_num2)
-		
-		if select==2:
-			# t_feature_sample1 = np.random.rand(feature_sample1.shape[0],feature_sample1.shape[1])
-			# t_feature_sample2 = np.random.rand(feature_sample2.shape[0],feature_sample2.shape[1])
-			feature_sample1 = feature_sample1[:,:,np.newaxis]
-			feature_sample2 = feature_sample2[:,:,np.newaxis]
-			feature_sample1 = np.concatenate((feature_sample1,feature_sample1_1),axis=2)
-			feature_sample2 = np.concatenate((feature_sample2,feature_sample2_1),axis=2)
-		elif select==3:
-			size1 = feature_sample1_1.shape[-1]
-			print('select 3', size1)
-			t1 = np.repeat(feature_sample1[:,:,np.newaxis],size1,axis=2)
-			t2 = np.repeat(feature_sample2[:,:,np.newaxis],size1,axis=2)
-			feature_sample1 = t1*feature_sample1_1
-			feature_sample2 = t2*feature_sample2_1
-			print(np.max(t1),np.min(t1),np.max(t2),np.min(t2))
-			print(np.max(feature_sample1_1),np.max(feature_sample2_1),np.min(feature_sample1_1),np.min(feature_sample2_1))
-			print(feature_sample1.shape,feature_sample2.shape)
-			# return -1
-		elif select==1:
-			feature_sample1 = feature_sample1_1
-			feature_sample2 = feature_sample2_1
-		else:
-			pass
-		
-		x = np.vstack((feature_sample1,feature_sample2))
-		y = np.asarray([1]*sample_num1 + [0]*sample_num2)
-		group_label = np.hstack((group_label1,-group_label2))
-		pos_vec = np.vstack((label_list[:,6:9],label_list2[:,4:7]))
-		chrom_idvec = pos_vec[:,0]
-		print(pos_vec[0:5])
-		# print(group_label[0:5],group_label[-5:])
-
-		# sample_num = x.shape[0]
-		# id1 = np.random.permutation(sample_num)
-		# x = x[id1]
-		# y = y[id1]
-
-		if ('shuffle_local' in self.config) and (self.config['shuffle_local']==2):
-			np.random.shuffle(x)
-
-		if x.ndim<3:
-			x = x[:,:,np.newaxis]
-		y = y[:,np.newaxis]
-
-		id_vec = self.train_test_init_1(x,y,chrom_idvec,group_label,type_id5)
-		feature_dim = x.shape[-1]
-		config = self.train_init_zone_config(feature_dim,flanking,region_size_unit,
-												feature_dim2,attention2,type_id3,select)
-
-		if type_id5<=1:
-
-			list_1 = []
-			for key1 in ['train','valid','test']:
-				list_1.extend(id_vec[key1])
-			x_train, y_train, id_train, x_valid, y_valid, id_valid, x_test, y_test, id_test = list_1
-
-			MODEL_PATH = 'test_%d_%d.init1.h5'%(run_id,run_id1)
-			config.update({'model_path':MODEL_PATH})
-			id_vec = [id_train,id_valid,id_test]
-			vec2, vec2_1, vec3 = self.train_init_zone_sub2(x_train,y_train,x_valid,y_valid,x_test,y_test,id_vec,group_label,config)
-			
-			list1 = np.vstack(([run_id1,0]+vec2,[run_id1,0]+vec2_1))
-			output_filename2 = 'test_pred_%d_%d.init1.txt'%(celltype_id,type_id5)
-			with open(output_filename2,'ab') as fid:
-				np.savetxt(fid,list1,fmt='%.4f',delimiter='\t')
-
-			model, y_test_prob, y_test_pred, thresh = vec3
-
-			t_pos = np.hstack((pos_sample1[0],pos_sample2[0]))
-			t_serial = serial[t_pos[id_test]]
-			fields = ['chrom','start','stop','serial','group_label','label','predicted_label']
-			t1 = np.column_stack((t_serial,group_label[id_test],y_test,y_test_pred))
-			mtx1 = np.int64(np.hstack((pos_vec[id_test],t1)))
-			data1 = pd.DataFrame(columns=fields,data=mtx1)
-			data1['predicted_prob'] = y_test_prob
-			
-			output_filename = 'test1_%d_%d_%d_%d_%d.pred.init1.txt'%(celltype_id,run_id,run_id1,flanking,type_id5)
-			data1 = data1.sort_values(by=['serial'])
-			data1.to_csv(output_filename,index=False,sep='\t')
-	
-		else:
-			t_keys = list(id_vec.keys())
-			sample_num = x.shape[0]
-			t_prob = np.zeros(sample_num,dtype=np.float32)
-			t_pred = np.zeros(sample_num,dtype=np.int8)
-			fold_idvec = np.zeros(sample_num,dtype=np.int8)
-			list1, list2 = [], []
-
-			for i in t_keys:
-				t_idvec = id_vec[i]
-				list_1 = []
-				for key1 in ['train','valid','test']:
-					id1 = t_idvec[key1]
-					list_1.extend([x[id1],y[id1],id1])
-				x_train, y_train, id_train, x_valid, y_valid, id_valid, x_test, y_test, id_test = list_1
-				
-				MODEL_PATH = 'test_%d_%d_%d.init1.h5'%(run_id,run_id1,i)
-				config.update({'model_path':MODEL_PATH})
-				
-				id_vec1 = [id_train,id_valid,id_test]
-				vec2, vec2_1,vec3 = self.train_init_zone_sub2(x_train,y_train,x_valid,y_valid,x_test,y_test,id_vec1,group_label,config)
-				model, y_test_prob, y_test_pred, thresh = vec3
-
-				t_prob[id_test] = y_test_prob
-				t_pred[id_test] = y_test_pred
-				fold_idvec[id_test] = i+1
-
-				list1.append([run_id1,i]+vec2)
-				list2.append([run_id1,i]+vec2_1)
-
-			vec3 = [t_prob, t_pred]
-			y = np.ravel(y)
-			accuracy, auc, aupr, precision, recall, f1_score = utility_1.score_function(y, t_pred, t_prob)
-			print('test',accuracy,auc,aupr,precision,recall, f1_score)
-
-			accuracy1, auc1, aupr1, precision1, recall1, f1_score1 = utility_1.score_function_group(y, t_pred, t_prob, group_label)
-			print('test',accuracy1,auc1,aupr1,precision1,recall1, f1_score1)
-			list1.append([run_id1,i+1,accuracy, auc, aupr, precision, recall, f1_score])
-			list2.append([run_id1,i+1,accuracy1, auc1, aupr1, precision1, recall1, f1_score1])
-
-			t_pos = np.hstack((pos_sample1[0],pos_sample2[0]))
-			t_serial = serial[t_pos]
-			fields = ['chrom','start','stop','serial','group_label','label','predicted_label']
-			t1 = np.column_stack((t_serial,group_label,y,t_pred))
-			mtx1 = np.int64(np.hstack((pos_vec,t1)))
-			data1 = pd.DataFrame(columns=fields,data=mtx1)
-			data1['predicted_prob'] = t_prob
-			data1['fold'] = fold_idvec
-			
-			output_filename = 'test_%d_%d_%d_%d_%d.pred.init1.txt'%(celltype_id,run_id,run_id1,flanking,type_id5)
-			data1 = data1.sort_values(by=['serial'])
-			data1.to_csv(output_filename,index=False,sep='\t')
-
-			list1, list2 = np.asarray(list1), np.asarray(list2)
-			list1 = np.vstack((list1,list2))
-
-			output_filename2 = 'test_pred_%d_%d.init1.txt'%(celltype_id,type_id5)
-			with open(output_filename2,'ab') as fid:
-				np.savetxt(fid,list1,fmt='%.4f',delimiter='\t')
-
-		return list1, vec3
 
 	###########################################################
 	## generate training and test data
@@ -11089,16 +5565,6 @@ class _Base1(BaseEstimator):
 					num1 = len(train_id1_pre)
 					valid_num = int(num1*(1-ratio))
 
-					# valid_sel_id = t_idvec[(i+1)%n_fold]
-					# t_id1 = list2[valid_sel_id]
-					# if valid_num<len(t_id1):
-					# 	valid_id1 = t_id1[valid_num:]
-					# else:
-					# 	valid_id1 = train_id1_pre[-valid_num:]
-
-					# valid_id1 = train_id1_pre[num2:]
-					# train_id1 = train_id1_pre[0:num2]
-
 					if self.config['valid_random']==1:
 						start_idx = np.random.randint(num1-valid_num-1)
 						valid_id1 = train_id1_pre[start_idx:start_idx+valid_num]
@@ -11151,39 +5617,11 @@ class _Base1(BaseEstimator):
 			train_id1.extend(b1)
 			train_id2.append(b1)
 
-		# test_id1, test_id2 = [], []
-		# for t_chrom in self.test_chromvec:
-		# 	b1 = np.where(train_sel_list[:,0]==int(t_chrom))[0]
-		# 	t1 = train_sel_list[b1,1]
-		# 	# test_id1.extend(t1)
-		# 	# test_id2.append(t1)
-		# 	test_id1.extend(b1)
-		# 	test_id2.append(b1)
-
 		return np.asarray(train_id1), train_id2
 
 	# generate serial for training and test data
 	def training_serial(self,train_sel_list):
 		# # training data and test data
-		# train_id1 = []
-		# print(self.train_chromvec,self.test_chromvec)
-		# for t_chrom in self.train_chromvec:
-		# 	b1 = np.where(train_sel_list[:,0]==int(t_chrom))[0]
-		# 	# train_id1.extend(train_sel_list[b1,1])
-		# 	train_id1.extend(b1)
-
-		# test_id1, test_id2 = [], []
-		# for t_chrom in self.test_chromvec:
-		# 	b1 = np.where(train_sel_list[:,0]==int(t_chrom))[0]
-		# 	t1 = train_sel_list[b1,1]
-		# 	# test_id1.extend(t1)
-		# 	# test_id2.append(t1)
-		# 	test_id1.extend(b1)
-		# 	test_id2.append(b1)
-
-		# # print(train_id1)
-		# # print(test_id1)
-		# train_id1, test_id1 = np.asarray(train_id1), np.asarray(test_id1)
 		test_id1, test_id2 = self.training_serial_pre(train_sel_list,self.test_chromvec)
 		region_list = self.region_list_train
 		if len(region_list)==0:
@@ -11202,7 +5640,7 @@ class _Base1(BaseEstimator):
 		# train_serial = np.intersect1d(train_id1,self.serial)
 		# test_serial = np.intersect1d(test_id1,self.serial)
 		# print('train_id1',train_id1)
-		print(len(self.serial))
+		# print(len(self.serial))
 
 		id1 = mapping_Idx(train_sel_list[train_id1,1],self.serial)
 		id_1 = np.where(id1>=0)[0]
@@ -11215,11 +5653,8 @@ class _Base1(BaseEstimator):
 		print(len(test_id1),len(id_2))
 		test_id1 = test_id1[id2[id_2]]
 
-		#print(x_train1_trans.shape,train_sel_list.shape)
-		print(train_sel_list.shape)
-		# x_train1_trans_ori, train_sel_list_ori = x_train1_trans.copy(), train_sel_list.copy()
-		# x_test1_trans, test_sel_list = x_train1_trans_ori[test_id1], train_sel_list_ori[test_id1]
-		# x_train1_trans, train_sel_list = x_train1_trans[train_id1], train_sel_list[train_id1]
+		# print(x_train1_trans.shape,train_sel_list.shape)
+		# print(train_sel_list.shape)
 		train_sel_list_ori = train_sel_list.copy()
 		test_sel_list = train_sel_list_ori[test_id1]
 		train_sel_list = train_sel_list[train_id1]
@@ -11247,9 +5682,6 @@ class _Base1(BaseEstimator):
 			t_region = region_list[i]
 			t_chrom, t_start, t_stop = t_region[0], t_region[1], t_region[2]
 			t_chrom1 = 'chr%s'%(t_chrom)
-			# if (type_id2==1) or (t_stop-t_start)<=bin_size:
-			# 	t_stop = t_stop+bin_size
-			# 	t_start = t_start-bin_size
 
 			if (type_id2==1):
 				t_stop = t_stop+bin_size
@@ -11278,13 +5710,6 @@ class _Base1(BaseEstimator):
 			t_chrom, t_start, t_stop = t_region[0], t_region[1], t_region[2]
 			t_chrom1 = 'chr%s'%(t_chrom)
 			b = np.where(chrom==t_chrom1)[0]
-			# t_region_len = (t_stop-t_start)/self.bin_size
-			# if (type_id2==1) or (t_region_len<2):
-				# t_start1 = np.max((0,t_start-tol*self.bin_size))
-				# t_stop1 = np.min((stop[b][-1],t_stop+tol*self.bin_size))
-				# b1 = np.where(stop[b]<=t_start1)[0]
-				# b2 = np.where(start[b]>=t_stop1)[0]
-
 			b1 = np.where(stop[b]<=t_start)[0]
 			b2 = np.where(start[b]>=t_stop)[0]
 			if len(b1)>0 and len(b2)>0:
@@ -11295,30 +5720,18 @@ class _Base1(BaseEstimator):
 				# print(t_region,id1,id2)
 				list1.append([t_chrom,boundary1,boundary2])
 
-		# list1 = np.asarray(list1)
-		# sort_idx = np.argsort(list1[:,1])
-		# list1 = list1[sort_idx]
-
 		return np.asarray(list1)
 
 	# search the regions
 	def region_search_1(self, chrom, start, stop, serial, region_list, type_id2=0, tol=0):
 		
 		if len(region_list)>0:
-
 			t_region_list = []
 			for t_region in region_list:
 				t_chrom, t_start, t_stop = t_region[0], t_region[1], t_region[2]
 				t_chrom1 = 'chr%s'%(t_chrom)
 				t_region_len = (t_stop-t_start)/self.bin_size
 				b = np.where(chrom==t_chrom1)[0]
-				# if (type_id2==1) or (t_region_len<2):
-				# 	t_start1 = np.max((0,t_start-tol*self.bin_size))
-				# 	t_stop1 = np.min((stop[b][-1],t_stop+tol*self.bin_size))
-				# 	t_region_list.append([t_chrom,t_start1,t_stop1])
-
-				# print(np.unique(chrom))
-				# print(t_chrom1)
 				if (type_id2==1):
 					t_start1 = np.max((0,t_start-tol*self.bin_size))
 					t_stop1 = np.min((stop[b][-1],t_stop+tol*self.bin_size))
@@ -11416,13 +5829,6 @@ class _Base1(BaseEstimator):
 			train_id1.extend(train_sel_list[b1[vec1],1])
 			test_id1.extend(train_sel_list[b1[vec2],1])
 
-		# test_id1, test_id2 = [], []
-		# for t_chrom in self.test_chromvec:
-		# 	b1 = np.where(train_sel_list[:,0]==int(t_chrom))[0]
-		# 	t1 = train_sel_list[b1,1]
-		# 	test_id1.extend(t1)
-		# 	test_id2.append(t1)
-
 		return np.asarray(train_id1), np.asarray(test_id1)
 
 	# generate training and test indices
@@ -11454,7 +5860,7 @@ class _Base1(BaseEstimator):
 			# vec1 = list(range(0,int(num1*0.4)))+list(range(int(num1*0.5),num1))
 			# vec2 = list(range(int(num1*0.4),int(num1*0.5)))
 			# train_id1.extend(train_sel_list[vec1,1])	# serial
-			# test_id1.extend(train_sel_list[vec2,1])		# serial
+			# test_id1.extend(train_sel_list[vec2,1])	# serial
 			train_id1.extend(vec1)	# index
 			test_id1.extend(vec2)	# index
 
@@ -11466,7 +5872,6 @@ class _Base1(BaseEstimator):
 	def generate_train_test_2(self,train_sel_list,idx_train,idx_valid):
 
 		# training regions on the chromosome
-		# region_list = np.asarray([[16,0,43500000],[16,51000000,95000000]])
 		region_list = self.region_list_train
 		# region_list = region_list[np.newaxis,:]
 		print(len(train_sel_list))
@@ -11481,40 +5886,6 @@ class _Base1(BaseEstimator):
 		print('idx_train,idx_valid',len(idx_train),len(idx_valid))
 
 		# validation regions on the chromosome
-		# region_list = np.asarray([16,95000000,98000000])
-		region_list = self.region_list_valid
-		# region_list = region_list[np.newaxis,:]
-		if len(region_list)>0:
-			# train_id2: included training region
-			train_id1, valid_id2 = self.generate_train_test_idx_2(train_sel_list,region_list)
-			# temp1 = np.setdiff1d(idx_valid,train_id1)
-			idx_valid = np.union1d(idx_valid,valid_id2)
-			# idx_valid = np.intersect1d(idx_valid,train_id1)
-			idx_train = np.setdiff1d(temp1,idx_valid)
-		print('idx_train,idx_valid',len(idx_train),len(idx_valid))
-
-		return idx_train, idx_valid
-
-	# input: regions reserved for training and validation
-	def generate_train_test_3(self,train_sel_list,idx_train,idx_valid):
-
-		# training regions on the chromosome
-		# region_list = np.asarray([[16,0,43500000],[16,51000000,95000000]])
-		region_list = self.region_list_train
-		# region_list = region_list[np.newaxis,:]
-		print(len(train_sel_list))
-		if len(region_list)>0:
-			# train_id2: included training region
-			train_id1, train_id2 = self.generate_train_test_idx_2(train_sel_list,region_list)
-			# temp1 = np.setdiff1d(idx_valid,train_id1)
-			idx_train = np.union1d(idx_train,train_id2)
-			temp1 = list(range(0,len(train_sel_list)))
-			# idx_valid = np.intersect1d(idx_valid,train_id1)
-			idx_valid = np.setdiff1d(temp1,idx_train)
-		print('idx_train,idx_valid',len(idx_train),len(idx_valid))
-
-		# validation regions on the chromosome
-		# region_list = np.asarray([16,95000000,98000000])
 		region_list = self.region_list_valid
 		# region_list = region_list[np.newaxis,:]
 		if len(region_list)>0:
@@ -11558,118 +5929,6 @@ class _Base1(BaseEstimator):
 		return True
 
 	###########################################################
-	## context selection
-
-	###########################################################
-	## features
-	# load features: kmer, gc, phyloP score
-	def load_phyloP_score(self,filename,query_serial,feature_idx):
-
-		# load phyloP scores
-		# filename3 = '%s/phyloP_chr%s.txt'%(file_path,chrom_id)
-		temp1 = pd.read_csv(filename,sep='\t')
-		temp1 = np.asarray(temp1)
-
-		t_serial, phyloP_score = np.int64(temp1[:,0]), temp1[:,1:]
-		trans_id1 = mapping_Idx(t_serial,query_serial)	# mapped index
-		# select dimensions of the phyloP score
-		if feature_idx==-5:
-			t_phyloP = phyloP_score[trans_id1]
-		elif feature_idx==-6:
-			t_phyloP = phyloP_score[trans_id1,0:-4]
-		else:
-			t_phyloP = phyloP_score[trans_id1]
-			t_phyloP = t_phyloP[:,feature_idx]
-
-		return t_phyloP
-
-	def load_gc_feature(self,signal_ori,serial_ori,query_serial,feature_idx):
-
-		# filename = '%s/training2_gc.txt'%(file_path,species_name)
-		# file2 = pd.read_csv(filename,sep='\t')
-		# gc_signal = np.asarray(file2)
-
-		trans_id1a = mapping_Idx(serial_ori,query_serial)	# mapped index
-		t_gc = signal_ori[trans_id1a]
-		t_gc = t_gc[:,feature_idx]
-
-		return t_gc
-
-	def load_kmer_feature(self,filename,kmer_size,sel_idx):
-
-		# filename2 = '%s/Kmer%d/training_kmer_%s.npy'%(file_path,kmer_size,chrom_id)
-		file1 = np.load(filename)
-		t_signal_ori1 = np.asarray(file1)
-		t_signal1 = t_signal_ori1[sel_idx]
-		# feature_dim_kmer1 = t_signal_ori1.shape[1]
-
-		# temp1 = serial[id1]
-		# n1 = len(temp1)
-		# temp2 = np.vstack(([int(chrom_id)]*n1,temp1)).T
-		# train_sel_list.extend(temp2)	# chrom_id, serial
-
-		return t_signal1
-
-	def positional_encoding(self,num_positions,depth1,min_rate=1.0/10000):
-
-		# num_positions = 50
-		# depth = 512
-		# min_rate = 1/10000
-
-		# assert depth%2 == 0, "Depth must be even."
-		depth = depth1
-		if depth%2!=0:
-			depth = depth1+1
-		
-		angle_rate_exponents = np.linspace(0,1,depth//2)
-		angle_rates = min_rate**(angle_rate_exponents)
-
-		positions = np.arange(num_positions) 
-		angle_rads = (positions[:, np.newaxis])*angle_rates[np.newaxis, :]
-		# print(angle_rads.shape)
-
-		sines = np.sin(angle_rads)
-		cosines = np.cos(angle_rads)
-		# pos_encoding = np.concatenate([sines, cosines], axis=-1)
-		pos_encoding = np.zeros((num_positions,depth))
-		pos_encoding[:,range(0,depth,2)] = sines
-		pos_encoding[:,range(1,depth,2)] = cosines
-
-		return pos_encoding
-
-	def positional_encoding1(self,feature_vec,sel_idx_list,feature_dim):
-		
-		num1 = len(sel_idx_list)
-		chrom1 = sel_idx_list[:,0]
-		chrom_vec1 = np.unique(chrom1)
-		chrom_vec1 = np.sort(chrom_vec1)
-		min_rate = 1.0/10000
-		print(sel_idx_list.shape)
-
-		for chrom_id in chrom_vec1:
-			b1 = np.where(chrom1==chrom_id)[0]
-			serial1 = sel_idx_list[b1,1]
-			print(serial1.shape)
-			# s1, s2 = np.min(serial1), np.max(serial1)
-			s1, s2 = serial1[0], serial1[-1]
-			t_serial = serial1-s1
-			num_positions = s2-s1+1
-			# print('num_positions',num_positions)
-			pos_encoding = self.positional_encoding(num_positions,feature_dim,min_rate)
-			id1 = mapping_Idx(range(0,num_positions),t_serial)
-			# self.x_train1_trans[b1] = self.x_train1_trans[id1] + pos_encoding[id1]
-			if feature_dim%2==0:
-				feature_vec[b1] = feature_vec[b1] + pos_encoding[id1]
-			else:
-				id2 = list(range(0,21))+list(range(22,feature_dim+1))
-				feature_vec[b1] = feature_vec[b1] + pos_encoding[id1][:,id2]
-			print(chrom_id,len(b1),pos_encoding.shape,np.max(pos_encoding),np.mean(pos_encoding))
-
-		print(self.feature_dim)
-		
-		return feature_vec
-
-	###########################################################
 	## data transformation and feature selection
 	# feature dimension reduction
 	def feature_transform(self, x_train, x_test, feature_dim_transform, shuffle, sub_sample_ratio, type_id, normalize=0):
@@ -11694,10 +5953,7 @@ class _Base1(BaseEstimator):
 			sc = StandardScaler()
 			x_ori = sc.fit_transform(x_ori)	# normalize data
 			x_ori_motif = sc.fit_transform(x_ori_motif)
-		# x_train_sub = sc.fit_transform(x_ori[0:num_train,:])
-		# x_test_sub = sc.transform(x_ori[num_train+num_test,:])
-		# x_train_sub = sc.fit_transform(x_ori[0:num_train,:])
-		# x_test_sub = sc.transform(x_ori[num_train+num_test,:])
+
 		num_train, num_test = x_train.shape[0], x_test.shape[0]
 		vec1 = ['PCA','Incremental PCA','Kernel PCA','Sparse PCA','SVD','GRP','SRP','MDS','ISOMAP','Minibatch','ICA','tSNE','LLE','Encoder']
 		
@@ -11891,314 +6147,88 @@ class _Base1(BaseEstimator):
 			if self.feature_dim_select1>=0:
 				sel_idx = vec1[self.feature_dim_select1]
 				x_train1_trans = x_train1_trans[:,sel_idx]
-
-		# elif self.species_id=='mm10':
-		# 	if self.feature_dim_select1>=0:
-		# 		x_train1_trans = x_train1_trans[:,0:(2+feature_dim_transform[0])]
-
 		else:
 			pass
 
 		return x_train1_trans
 
-	###########################################################
-	## evaluation 
-	# compare estimated score with existing elements
-	def compare_with_regions_ori(self,filename1, filename2, output_filename, output_filename1, filename1a=''):
+	def positional_encoding(self,num_positions,depth1,min_rate=1.0/10000):
 
-		data1 = pd.read_csv(filename1,sep='\t')
-		data1a = pd.read_csv(filename1a,sep='\t')
-		colnames1 = list(data1)
-		chrom1, serial1 = np.asarray(data1['chrom']), np.asarray(data1['serial'])
-		b1 = np.where(chrom1!='chr16')[0]
-		data_1 = data1.loc[b1,colnames1]
+		# num_positions = 50
+		# depth = 512
+		# min_rate = 1/10000
 
-		data3 = pd.concat([data_1,data1a], axis=0, join='outer', ignore_index=True, 
-					keys=None, levels=None, names=None, verify_integrity=False, copy=True)
+		# assert depth%2 == 0, "Depth must be even."
+		depth = depth1
+		if depth%2!=0:
+			depth = depth1+1
 		
-		print(list(data3))
-		data3 = data3.sort_values(by=['serial'])
-		num1 = data3.shape[0]
-		print(num1)
-		label1 = np.zeros(num1)
-		chrom1, start1, stop1 = data3['chrom'], data3['start'], data3['stop']
-		attention1 = data3[colnames1[-1]]
+		angle_rate_exponents = np.linspace(0,1,depth//2)
+		angle_rates = min_rate**(angle_rate_exponents)
 
-		data2 = pd.read_csv(filename2,header=None,sep='\t')
-		colnames2 = list(data2)
-		col1, col2, col3 = colnames2[0], colnames2[1], colnames2[2]
-		chrom2, start2, stop2 = data2[col1], data2[col2], data2[col3]
+		positions = np.arange(num_positions) 
+		angle_rads = (positions[:, np.newaxis])*angle_rates[np.newaxis, :]
+		# print(angle_rads.shape)
 
-		num2 = len(chrom2)
-		score1 = -np.ones(num2)
-		for i in range(0,num2):
-			t_chrom, t_start, t_stop = chrom2[i], start2[i], stop2[i]
-			b1_ori = np.where((chrom1==t_chrom)&(start1<t_stop)&(stop1>t_start))[0]
-			if len(b1_ori)==0:
-				continue
-			s1 = max(0,b1_ori[0]-2)
-			s2 = min(len(chrom1),b1_ori[0]+3)
-			b1 = list(range(s1,s2))
-			# b1 = np.where((chrom1==t_chrom)&(start1>=t_start)&(stop1<=t_stop))[0]
-			label1[b1_ori] = 1
-			# select the maximum score in a region
-			t_score = np.max(attention1[b1])
-			score1[i] = t_score
-			if i%100==0:
-				print(i,t_score)
+		sines = np.sin(angle_rads)
+		cosines = np.cos(angle_rads)
+		# pos_encoding = np.concatenate([sines, cosines], axis=-1)
+		pos_encoding = np.zeros((num_positions,depth))
+		pos_encoding[:,range(0,depth,2)] = sines
+		pos_encoding[:,range(1,depth,2)] = cosines
 
-		data3['label'] = label1
-		data3.to_csv(output_filename,index=False,sep='\t')
+		return pos_encoding
 
-		data2['score'] = score1
-		b1 = np.where(score1>0)[0]
-		data2 = data2.loc[b1,list(data2)]
-		data2.to_csv(output_filename1,index=False,sep='\t')
-
-		return data2, data3
-
-	## evaluation 
-	# compare estimated score with existing elements
-	# filename1: estimated attention
-	# filename2: ERCE
-	def compare_with_regions(self,filename1, filename2, output_filename, output_filename1, tol=2, filename1a=''):
-
-		data1 = pd.read_csv(filename1,sep='\t')
-		# data1a = pd.read_csv(filename1a,sep='\t')
-		colnames1 = list(data1)
-		chrom1, serial1 = np.asarray(data1['chrom']), np.asarray(data1['serial'])
-		# b1 = np.where(chrom1!='chr16')[0]
-		# data_1 = data1.loc[b1,colnames1]
-
-		# data3 = pd.concat([data_1,data1a], axis=0, join='outer', ignore_index=True, 
-		# 			keys=None, levels=None, names=None, verify_integrity=False, copy=True)
+	def positional_encoding1(self,feature_vec,sel_idx_list,feature_dim):
 		
-		data3 = data1
-		print(list(data3))
-		# data3 = data3.sort_values(by=['serial'])
-		num1 = data3.shape[0]
-		print(num1)
-		label1 = np.zeros(num1)
-		chrom1, start1, stop1 = data3['chrom'], data3['start'], data3['stop']
-		attention1 = data3[colnames1[-1]]
+		num1 = len(sel_idx_list)
+		chrom1 = sel_idx_list[:,0]
+		chrom_vec1 = np.unique(chrom1)
+		chrom_vec1 = np.sort(chrom_vec1)
+		min_rate = 1.0/10000
+		print(sel_idx_list.shape)
 
-		# load ERCE files
-		data2 = pd.read_csv(filename2,header=None,sep='\t')
-		colnames2 = list(data2)
-		col1, col2, col3 = colnames2[0], colnames2[1], colnames2[2]
-		chrom2, start2, stop2 = data2[col1], data2[col2], data2[col3]
+		for chrom_id in chrom_vec1:
+			b1 = np.where(chrom1==chrom_id)[0]
+			serial1 = sel_idx_list[b1,1]
+			print(serial1.shape)
+			# s1, s2 = np.min(serial1), np.max(serial1)
+			s1, s2 = serial1[0], serial1[-1]
+			t_serial = serial1-s1
+			num_positions = s2-s1+1
+			# print('num_positions',num_positions)
+			pos_encoding = self.positional_encoding(num_positions,feature_dim,min_rate)
+			id1 = mapping_Idx(range(0,num_positions),t_serial)
+			# self.x_train1_trans[b1] = self.x_train1_trans[id1] + pos_encoding[id1]
+			if feature_dim%2==0:
+				feature_vec[b1] = feature_vec[b1] + pos_encoding[id1]
+			else:
+				id2 = list(range(0,21))+list(range(22,feature_dim+1))
+				feature_vec[b1] = feature_vec[b1] + pos_encoding[id1][:,id2]
+			print(chrom_id,len(b1),pos_encoding.shape,np.max(pos_encoding),np.mean(pos_encoding))
 
-		num2 = len(chrom2)
-		score1 = -np.ones(num2)
-		for i in range(0,num2):
-			t_chrom, t_start, t_stop = chrom2[i], start2[i], stop2[i]
-			b1_ori = np.where((chrom1==t_chrom)&(start1<t_stop)&(stop1>t_start))[0]
-			if len(b1_ori)==0:
-				continue
-			# tolerance of the region
-			s1 = max(0,b1_ori[0]-tol)
-			s2 = min(len(chrom1),b1_ori[0]+tol+1)
-			b1 = list(range(s1,s2))
-			# b1 = np.where((chrom1==t_chrom)&(start1>=t_start)&(stop1<=t_stop))[0]
-			label1[b1_ori] = 1+i
-			# select the maximum score in a region
-			t_score = np.max(attention1[b1])
-			score1[i] = t_score
-			if i%100==0:
-				print(i,t_score)
-
-		data3['label'] = label1
-		data3.to_csv(output_filename,index=False,sep='\t')
-
-		data2['score'] = score1
-		# b1 = np.where(score1>0)[0]
-		# data2 = data2.loc[b1,list(data2)]
-		data2.to_csv(output_filename1,index=False,sep='\t')
-
-		return data2, data3
-
-	# sample regions randomly to compare with elements
-	def compare_with_regions_sub1(self,chrom1,start1,stop1,attention1,
-									sample_num,region_len,chrom_size,bin_size,tol):
-
-		start_pos = np.random.permutation(chrom_size-int(region_len/bin_size)-2*tol)
-		start_pos = start1[start_pos+tol]
-		vec2 = -np.ones(sample_num)
-
-		start_pos1 = start_pos[0:sample_num]
-		pos1 = np.vstack((start_pos1,start_pos1+region_len)).T
-		for t_pos in pos1:
-			t_start2 = min(0,t_pos[0]-tol*bin_size)
-			t_stop2 = max(stop1[-1],t_pos[1]+tol*bin_size)
-			b1_ori = np.where((start1<t_start2)&(stop1>t_stop2))[0]
-			if len(b1_ori)==0:
-				continue
-				# s1 = max(0,b1_ori[0]-tol)
-				# s2 = min(t_chrom_size,b1_ori[0]+tol+1)
-				# b1 = b2[s1:s2]
-			vec2[i] = np.max(attention1[b1_ori])
-
-		vec2 = vec2[vec2>=0]
-
-		return vec2
-
-	# sample regions randomly to compare with elements
-	def compare_with_regions_random1(self,filename1,output_filename,output_filename1,
-										output_filename2, tol=2):
-
-		data1 = pd.read_csv(filename1,sep='\t')
-		# data1a = pd.read_csv(filename1a,sep='\t')
-		# colnames1 = list(data1)
-		# chrom1, serial1 = np.asarray(data1['chrom']), np.asarray(data1['serial'])
-		# b1 = np.where(chrom1!='chr16')[0]
-		# data_1 = data1.loc[b1,colnames1]
-
-		# data3 = pd.concat([data_1,data1a], axis=0, join='outer', ignore_index=True, 
-		# 			keys=None, levels=None, names=None, verify_integrity=False, copy=True)
-
-		# load ERCE files
-		data2 = pd.read_csv(filename2,header=None,sep='\t')
-		colnames2 = list(data2)
-		col1, col2, col3 = colnames2[0], colnames2[1], colnames2[2]
-		chrom2, start2, stop2 = data2[col1], data2[col2], data2[col3]
+		print(self.feature_dim)
 		
-		data3 = data1
-		colnames1 = list(data3)
-		print(colnames1)
-		# data3 = data3.sort_values(by=['serial'])
-		num1 = data3.shape[0]
-		print(num1)
-		label1 = np.zeros(num1,dtype=np.int32)
-		chrom1, start1, stop1 = np.asarray(data3['chrom']), np.asarray(data3['start']), np.asarray(data3['stop'])
-		attention1 = np.asarray(data3[colnames1[-1]])
-
-		chrom_vec = np.unique(chrom2)
-		chrom_num = len(chrom_vec)
-		chrom_size1 = len(chrom1)
-		bin_size = self.bin_size
-
-		num2 = len(chrom2)
-		score1 = -np.ones((num2,3))
-		vec1 = []
-
-		for i in range(0,num1):
-			t_chrom = chrom_vec[i]
-			b1 = np.where(chrom2==t_chrom)[0]
-			num2 = len(b1)
-			b2 = np.where(chrom1==t_chrom)[0]
-
-			for l in range(0,num2):
-				i1 = b1[l]
-				t_chrom, t_start, t_stop = chrom2[i1], start2[i1], stop2[i1]
-				t_chrom1, t_start1, t_stop1 = chrom1[b2], start1[b2], stop1[b2]
-
-				t_start = min(0,t_start-tol*bin_size)
-				t_stop = max(t_stop1[-1],t_stop+tol*bin_size)
-
-				b1_ori = np.where((t_start1<t_stop)&(t_stop1>t_start))[0]
-				if len(b1_ori)==0:
-					continue
-
-				b1_ori = b2[b1_ori]
-				# s1 = max(0,b1_ori[0]-tol)
-				# s2 = min(chrom_size1,b1_ori[0]+tol+1)
-				# b1 = list(range(s1,s2))
-				# b1 = np.where((chrom1==t_chrom)&(start1>=t_start)&(stop1<=t_stop))[0]
-				label1[b1_ori] = 1+i1
-				# select the maximum score in a region
-				t_score = np.max(attention1[b1])
-				score1[i1,0] = t_score
-
-				# randomly sample regions
-				region_len = t_stop-t_start
-				t_chrom_size = len(b2)
-				sample_num = 200
-				vec2 = self.compare_with_regions_sub1(t_chrom1,t_start1,t_stop1,t_attention1,
-											sample_num,region_len,t_chrom_size,bin_size,tol)
-				
-				t_score_mean, t_score_std1 = np.mean(vec2), np.std(vec2)
-				sample_num1 = len(vec2)
-				score1[i1,1:3] = [t_score_mean, t_score_std1]
-				vec1.extend(np.vstack(((1+i1)*len(vec2),vec2)).T)
-
-				# if i%100==0:
-				# 	print(i,score1[i],len(vec2))
-				print(i1,score1[i1],len(vec2))
-
-		data3['label'] = label1
-		data3.to_csv(output_filename,index=False,sep='\t')
-
-		data2['score'] = score1[:,0]
-		data2['score_comp_mean'], data2['score_comp_std'] = score1[:,1],score1[:,2]
-		# b1 = np.where(score1>0)[0]
-		# data2 = data2.loc[b1,list(data2)]
-		data2.to_csv(output_filename1,index=False,sep='\t')
-
-		vec1 = np.asarray(vec1)
-		np.savetxt(output_filename2,vec1,fmt='%d %.7f',delimiter='\t')
-
-		return True
+		return feature_vec
 
 	###########################################################
 	## writing function
-	def output_vec2(self,vec2,tlist):
-
-		# type_idvec = list(vec2.keys())
-		temp1 = []
-		for type_id2 in tlist:
-			dict1 = vec2[type_id2]
-			vec1 = dict1['vec1']
-			temp1.extend(vec1)
-
-		temp1 = np.asarray(temp1)
-		filename1 = 'test_vec2_%d.txt'%(self.run_id)
-		np.savetxt(filename1,temp1,fmt='%.7f',delimiter='\t')
-
-		return True
-
-	# output estimated importance
-	def output_vec3(self,vec2,tlist):
-
-		# type_idvec = list(vec2.keys())
-		temp1 = []
-		for type_id2 in tlist:
-			dict1 = vec2[type_id2]['valid']
-			vec1 = dict1['vec1']
-			print(vec1)
-			temp1.extend(vec1)
-			temp2 = vec2[type_id2]['test1']
-			test_chromvec = list(temp2.keys())
-			print(test_chromvec)
-			for test_chrom in test_chromvec:
-				vec1 = temp2[test_chrom]['vec1']
-				print(vec1)
-				temp1.append(vec1)
-			temp1.append(vec2[type_id2]['aver1'])
-
-		temp1 = np.asarray(temp1)
-		print(temp1)
-		
-		filename1 = 'test_vec2_%d.txt'%(self.run_id)
-		np.savetxt(filename1,temp1,fmt='%.7f',delimiter='\t')
-
-		return True
-
-	def output_vec3_1(self,vec2,tlist):
+	def output_vec(self,vec2,tlist):
 
 		temp1 = []
 		for type_id2 in tlist:
 			dict1 = vec2[type_id2]['valid']
 			vec1 = dict1['score']
-			print(vec1)
+			# print(vec1)
 			temp1.append([-1]+list(vec1))
 			dict2 = vec2[type_id2]['test1']
 			vec2 = dict2['score']
 			keys_1 = list(vec2.keys())
-			print(keys_1)
+			# print(keys_1)
 			test_chromvec = list(set(keys_1)-set(['aver1']))
 			test_chromvec = [int(i) for i in test_chromvec]
 			test_chromvec = np.sort(test_chromvec)
-			print(test_chromvec)
+			# print(test_chromvec)
 			for test_chrom in test_chromvec:
 				if test_chrom in keys_1:
 					t_score = vec2[test_chrom]
@@ -12265,7 +6295,7 @@ class _Base1(BaseEstimator):
 
 	# write predicted attention
 	def test_result_3(self,filename1,output_filename,data1=None,type_id2=0):
-		# filename1 = '/mnt/yy3/feature_transform_0_100_63.1a.npy'
+
 		if data1==None:
 			print('loading data...',filename1)
 			data1 = np.load(filename1,allow_pickle=True)
@@ -12294,9 +6324,6 @@ class _Base1(BaseEstimator):
 					print('error!', chrom_id, len(b1))
 					return 
 
-				# chrom_vec.extend(self.chrom[id1])
-				# start_vec.extend(self.start[id1])
-				# stop_vec.extend(self.stop[id1])
 				serial_vec.extend(self.serial[id1])
 				value_vec.extend(value)
 
@@ -12331,7 +6358,7 @@ class _Base1(BaseEstimator):
 
 	# write predicted attention
 	def test_result_3_1(self,filename1,output_filename,data1=None,type_id2=0):
-		# filename1 = '/mnt/yy3/feature_transform_0_100_63.1a.npy'
+		
 		if data1==None:
 			print('loading data...',filename1)
 			data1 = np.load(filename1,allow_pickle=True)
@@ -12364,9 +6391,6 @@ class _Base1(BaseEstimator):
 					print('error!', chrom_id, len(b1))
 					return 
 
-				# chrom_vec.extend(self.chrom[id1])
-				# start_vec.extend(self.start[id1])
-				# stop_vec.extend(self.stop[id1])
 				serial_vec.extend(self.serial[id1])
 				value_vec.extend(predicted_attention1)
 				value_vec_1.extend(attention_value2)
@@ -12407,199 +6431,12 @@ class _Base1(BaseEstimator):
 
 		return data2
 
-	def test_score_chrom(self):
-
-		test_chromvec = np.unique(test_sel_list[:,0])
-		for t_chrom in test_chromvec:
-			b1 = np.where(test_sel_list[:,0]==int(t_chrom))[0]
-			print(t_chrom,len(b1))
-			if len(b1)>0:
-				t_score1 = score_2a(y_test[b1], y_predicted_test[b1])
-				print(t_score1)
-				score_vec2[t_chrom] = t_score1
-			else:
-				print('error!',t_chrom)
-
-		return True
-
-	# test predict 1
-	def test_predict_1_ori(self,filename1,filename2,output_filename):
-
-		# x_train, train_sel_list1 = self.load_features_ori(train_chromvec)
-		# print('x_train', x_train.shape)
-		# vec1 = self.load_features_transform_predict(model_path,x_train,test_chromvec,feature_dim_transform)
-		# vec1 = self.load_features_transform_predict_1(model_path,test_chromvec,feature_dim_transform,output_filename)
-
-		self.load_local_serial(filename1)
-		# filename2 = 'attention1_%s.npy'%(output_filename)
-		data1 = np.load(filename2,allow_pickle=True)
-		data1 = data1[()]
-		print(data1.keys())
-
-		attention1 = data1['attention1']
-		vec1 = data1['vec1']
-		vec_local1 = data1['vec1_local']
-		serial_list = np.unique(vec1)
-		print(attention1.shape, vec1.shape, vec_local1.shape)
-
-		attention1 = np.swapaxes(attention1,1,2)
-		attention1 = attention1.reshape(attention1.shape[0]*attention1.shape[1],attention1.shape[-1])
-		
-		vec1 = np.ravel(vec1)
-		num1 = len(serial_list)
-		list1 = np.zeros((num1,4))
-		t1 = np.quantile(attention1,[0.1,0.5,0.75,0.9,0.95])
-		print(t1)
-		for i in range(0,num1):
-			t_serial = serial_list[i]
-			b1 = np.where(vec1==t_serial)[0]
-			temp1 = np.ravel(attention1[b1])
-			m1,m2,m_1,m_2 = np.max(temp1), np.min(temp1), np.median(temp1), np.mean(temp1)
-			list1[i] = [m1,m2,m_1,m_2]
-
-		id1 = mapping_Idx(self.serial,serial_list)
-		fields = ['chrom','start','stop','serial','max','min','median','mean']
-		data1 = pd.DataFrame(columns=fields)
-		data1[fields[0]], data1[fields[1]], data1[fields[2]], data1[fields[3]] = self.chrom[id1], self.start[id1], self.stop[id1], self.serial[id1]
-		for i in range(4,8):
-			data1[fields[i]] = list1[:,i-4]
-
-		data1.to_csv(output_filename,header=True,index=False,sep='\t')
-
-		return t1
-
-	# attention from model 11
-	def test_predict_1(self,filename1,filename2,output_filename):
-
-		# x_train, train_sel_list1 = self.load_features_ori(train_chromvec)
-		# print('x_train', x_train.shape)
-		# vec1 = self.load_features_transform_predict(model_path,x_train,test_chromvec,feature_dim_transform)
-		# vec1 = self.load_features_transform_predict_1(model_path,test_chromvec,feature_dim_transform,output_filename)
-
-		self.load_local_serial(filename1)
-		# filename2 = 'attention1_%s.npy'%(output_filename)
-		data1 = np.load(filename2,allow_pickle=True)
-		data1 = data1[()]
-		print(data1.keys())
-
-		attention1 = data1['attention1']
-		vec1 = data1['vec1']
-		# vec_local1 = data1['vec1_local']
-		vec2 = np.repeat(vec1,vec1.shape[1],axis=0)
-		serial_list = np.unique(vec1)
-		print(attention1.shape, vec1.shape, vec_local1.shape)
-
-		attention1 = np.swapaxes(attention1,1,2)
-		attention1 = attention1.reshape(attention1.shape[0]*attention1.shape[1],attention1.shape[-1])
-		
-		vec1 = np.ravel(vec1)
-		num1 = len(serial_list)
-		list1 = np.zeros((num1,7))
-		t1 = np.quantile(attention1,[0.1,0.5,0.75,0.9,0.95])
-		print(t1)
-		for i in range(0,num1):
-			t_serial = serial_list[i]
-			b1 = np.where(vec1==t_serial)[0]
-			temp1 = np.ravel(attention1[b1])
-			# m1,m2,m_1,m_2 = np.max(temp1), np.min(temp1), np.median(temp1), np.mean(temp1)
-			# list1[i] = [m1,m2,m_1,m_2]
-			m1,m2,m_1 = np.max(temp1), np.min(temp1), np.median(temp1)
-			list1[i] = [m1,m2,m_1]
-
-			temp2 = np.ravel(vec2[b1])
-			b2 = np.where(temp2==t_serial)[0]
-			b3 = np.where(temp2!=t_serial)[0]
-			value1, value2 = temp1[b2], temp1[b3]
-			t1,t2,t3 = np.max(value1), np.min(value1), np.median(value1)
-			t4,t5,t6,t7 = np.max(value2), temp2[b2[np.argmax(value2)]], np.min(value2), np.median(value2)
-			list1[i] = [t1,t2,t3,t4,t5,t6,t7]
-
-		id1 = mapping_Idx(self.serial,serial_list)
-		# fields = ['chrom','start','stop','serial','max','min','median','mean']
-		fields = ['chrom','start','stop','serial','max1','min1','median1','max','m_serial','min','median']
-		data1 = pd.DataFrame(columns=fields)
-		data1[fields[0]], data1[fields[1]], data1[fields[2]], data1[fields[3]] = self.chrom[id1], self.start[id1], self.stop[id1], self.serial[id1]
-		for i in range(4,len(fields)):
-			data1[fields[i]] = list1[:,i-4]
-
-		data1.to_csv(output_filename,header=True,index=False,sep='\t')
-
-		return t1
-
 	def process_attention(self,predicted_attention):
-
-		# previous
-		# if self.method==22:
-		# 	predicted_attention = np.ravel(predicted_attention[:,self.flanking])
 
 		if self.method in self.attention_vec:
 			predicted_attention = np.ravel(predicted_attention[:,self.flanking])
 
 		return predicted_attention
-
-	def process_attention_1(self,predicted_attention,vec1):
-
-		s1, s2 = predicted_attention.shape[1], predicted_attention.shape[-1]
-		serial = vec1[:,self.flanking]
-		quantile1 = [0.5,0.9,0.1]
-		col_num = 5
-		sel_idx = range(2,s1-2)
-		vec1 = vec1[:,sel_idx]	# there may be bias on the border
-		if s2<s1:
-			# predicted_attention = np.ravel(predicted_attention[:,self.flanking])
-			t_attention = predicted_attetion[:,sel_idx]	# there may be bias on the border
-			mtx1 = np.zeros((len(serial),col_num)) # attention
-			mtx2 = []	# received attention
-			i = 0
-			for t_serial in serial:
-				b1 = (vec1==t_serial)
-				mtx1[i] = list(np.quantile(t_attention,quantile1))+[np.max(t_attention),np.min(t_attention)]
-				i = i+1
-		else:
-			# vec2 = np.repeat(vec1,vec1.shape[1],axis=0)
-			# serial_list = np.unique(vec1)
-			predicted_attention = predicted_attention[:,sel_idx,sel_idx]	# there may be bias on the border
-			attention2 = predicted_attention.copy()
-			attention1 = np.swapaxes(predicted_attention,1,2)
-			vec1_1 = vec1[:,np.newaxis,:]
-			vec1_1 = np.repeat(vec1_1,vec1.shape[1],axis=1)
-			# attention1 = attention1.reshape(attention1.shape[0]*attention1.shape[1],attention1.shape[-1])
-			mtx1 = np.zeros((len(serial),col_num))
-			mtx2 = mtx1.copy()
-			i = 0
-			for t_serial in serial:
-				b1 = (vec1==t_serial)
-				# t_attention = np.ravel(attention1[b1])
-				t_attention = attention1[b1]
-				mtx1[i] = list(np.quantile(t_attention,quantile1))+[np.max(t_attention),np.min(t_attention)]
-
-				t_attention = attention2[b1].ravel()
-				temp1 = vec1_1[b1].ravel()
-				id1 = np.argsort(-t_attention)
-				t1 = id1[0:3]
-				# t2 = [temp1[id2] for id2 in t1]
-				t2 = temp1[t1]
-				mtx2[i] = list(t2) + list(t_attention[t1]) 
-				i = i+1
-
-		return (mtx1, mtx2)
-	
-	def process_attention_1_test(self):
-
-		np.random.seed(0)
-		# predicted_attention = np.asarray([[0.5,2,1.5],[2,1,0.5],[1,2,5]])
-		# vec1 = np.asarray([[0,0,1],[0,1,2],[1,2,2]])
-		num1 = 20
-		tol = 5
-		L = 5
-		predicted_attention = np.random.rand(num1,2*L+1)
-		x_mtx, y = np.random.rand(num1,5), np.random.rand(num1)
-		idx_sel_list = np.vstack((np.ones(num1),np.asarray(range(0,num1)))).T
-		seq_list = [[0,num1]]
-		vec1 = sample_select2a1(x_mtx, y, idx_sel_list, seq_list, tol, L)
-		mtx1, mtx2 = self.process_attention(predicted_attetion)
-
-		return True
 
 	def process_attention_2(self,predicted_attention,vec1):
 
@@ -12627,18 +6464,12 @@ class _Base1(BaseEstimator):
 				mtx1[i] = list(np.quantile(t_attention,quantile1))+[np.max(t_attention),np.min(t_attention)]
 				i = i+1
 		else:
-			# vec2 = np.repeat(vec1,vec1.shape[1],axis=0)
-			# serial_list = np.unique(vec1)
 			predicted_attention1 = predicted_attention[:,:,sel_idx]	# there may be bias on the border
-			# attention2 = predicted_attention1.copy()
 			attention1 = np.swapaxes(predicted_attention1,1,2)
 			vec1_1 = vec1[:,np.newaxis,:]
 			vec1_1 = np.repeat(vec1_1,vec1.shape[1],axis=1)
 			vec1_1 = vec1_1[:,sel_idx]
 			vec1 = vec1[:,sel_idx]
-			# attention1 = attention1.reshape(attention1.shape[0]*attention1.shape[1],attention1.shape[-1])
-			# mtx1 = np.zeros((len(serial),col_num))
-			# mtx2 = mtx1.copy()
 			dict1 = dict()
 			num_sample = len(serial)
 			col_num = 2
@@ -12647,10 +6478,8 @@ class _Base1(BaseEstimator):
 			if self.est_attention_type1==0:
 				for t_serial in serial:
 					b1 = (vec1==t_serial)
-					# t_attention = np.ravel(attention1[b1])
 					t_attention = attention1[b1].ravel()
 					mtx1[i] = [np.mean(t_attention),np.max(t_attention)]
-					# mtx1[i] = [np.mean(t_attention)]
 			else:
 				sel1 = 2
 				for t_serial in serial:
@@ -12667,28 +6496,10 @@ class _Base1(BaseEstimator):
 						vec2[i1] = [np.mean(value1),np.max(value1)]
 					dict1[t_serial] = {'id':id_vec,'count':count1,'value':vec2}
 					mtx1[i] = np.mean(vec2,axis=0)
-					# mtx1[i] = [np.mean(vec2[:,0]),np.max(vec2[:,1])]
-				# id3 = np.argsort(-t_attention)
-				# t1 = id3[0:3]
-				# t2 = id2[t1]
+
 				i = i+1
 
 		return (mtx1, dict1)
-
-	# predicton on deleted regions
-	def mouse_region_test_1():
-
-		x = 1
-
-	# prediction on ERCE regions
-	def mouse_region_test_2():
-
-		x = 2
-
-	# prediction evaluation on human cell lines
-	def prediction_test_3():
-
-		x = 3
 
 	# attention test
 	# calculate skewness
@@ -12710,14 +6521,48 @@ class _Base1(BaseEstimator):
 				self.train_chromvec,self.test_chromvec)
 
 		return (t1,ratio1,skew,kurtosis)
-
-	# compare attenton from different methods
-	def attention_compare_1():
-
-		x = 2
 			
 	#############################################################
 	## load features and feature transformation
+
+	# load features: phyloP scores
+	def load_phyloP_score(self,filename,query_serial,feature_idx):
+
+		# load phyloP scores
+		temp1 = pd.read_csv(filename,sep='\t')
+		temp1 = np.asarray(temp1)
+
+		t_serial, phyloP_score = np.int64(temp1[:,0]), temp1[:,1:]
+		trans_id1 = mapping_Idx(t_serial,query_serial)	# mapped index
+		# select dimensions of the phyloP score
+		if feature_idx==-5:
+			t_phyloP = phyloP_score[trans_id1]
+		elif feature_idx==-6:
+			t_phyloP = phyloP_score[trans_id1,0:-4]
+		else:
+			t_phyloP = phyloP_score[trans_id1]
+			t_phyloP = t_phyloP[:,feature_idx]
+
+		return t_phyloP
+
+	# load features: GC-content features
+	def load_gc_feature(self,signal_ori,serial_ori,query_serial,feature_idx):
+
+		trans_id1a = mapping_Idx(serial_ori,query_serial)	# mapped index
+		t_gc = signal_ori[trans_id1a]
+		t_gc = t_gc[:,feature_idx]
+
+		return t_gc
+
+	# load features: kmer features
+	def load_kmer_feature(self,filename,kmer_size,sel_idx):
+
+		file1 = np.load(filename)
+		t_signal_ori1 = np.asarray(file1)
+		t_signal1 = t_signal_ori1[sel_idx]
+
+		return t_signal1
+
 	def load_samples(self,chrom_vec,chrom,y_label_ori,y_group1,y_signal_ori1,filename2,filename2a,kmer_size,kmer_dict1,generate):
 
 		x_mtx_vec, y_label_vec, y_group_vec, y_signal_ori_vec = [], [], [], []
@@ -12753,7 +6598,7 @@ class _Base1(BaseEstimator):
 
 		return x_mtx, y_signal, y_label, threshold
 
-	def load_samples_kmer(chrom_vec,chrom,seq,kmer_size,kmer_dict1,path_1):
+	def load_samples_kmer(self,chrom_vec,chrom,seq,kmer_size,kmer_dict1,path_1):
 
 		x_mtx_vec, y_label_vec, y_group_vec, y_signal_ori_vec = [], [], [], []
 		for chrom_id in chrom_vec:
@@ -12765,596 +6610,6 @@ class _Base1(BaseEstimator):
 			np.save('%s/training2_kmer_%s'%(path_1,chrom_id),x_kmer)
 
 		return True
-
-	def feature_transform_single(self, x_ori1, feature_dim_transform, shuffle, sub_sample_ratio, type_id, normalize=0):
-		
-		x_ori1 = np.vstack((x_train,x_test))
-		dim1 = x_ori1.shape[1]
-		feature_dim_kmer = np.sum(self.feature_dim_kmer)
-		dim2 = dim1-feature_dim_kmer-self.feature_dim_motif
-		feature_dim = feature_dim_transform[0]
-		feature_dim1 = feature_dim_transform[1]
-		
-		print("feature_dim_kmer",feature_dim_kmer,dim2)
-		if self.kmer_size[1]==-1:
-			feature_kmer_idx = np.asarray(range(dim2,dim2+self.feature_dim_kmer[0]))
-		else:
-			feature_kmer_idx = np.asarray(range(dim2,dim2+feature_dim_kmer))
-		x_ori = x_ori1[:,feature_kmer_idx]
-		if self.feature_dim_motif>0:
-			feature_motif_idx = np.asarray(range(dim2+feature_dim_kmer,dim1))
-			x_ori_motif = x_ori1[:,feature_motif_idx]
-		if normalize>=1:
-			sc = StandardScaler()
-			x_ori = sc.fit_transform(x_ori)	# normalize data
-			x_ori_motif = sc.fit_transform(x_ori_motif)
-
-		# num_train, num_test = x_train.shape[0], x_test.shape[0]
-		vec1 = ['PCA','Incremental PCA','Kernel PCA','Sparse PCA','SVD','GRP','SRP','MDS','ISOMAP','Minibatch','ICA','tSNE','LLE','Encoder']
-		
-		if sub_sample_ratio<1:
-			sub_sample = int(x_ori.shape[0]*sub_sample_ratio)
-		else:
-			sub_sample = -1
-
-		shuffle = 0
-		start = time.time()
-		x = self.dimension_reduction(x_ori,feature_dim,shuffle,sub_sample,type_id)
-		stop = time.time()
-		print("feature transform %s"%(vec1[type_id]),stop - start)
-
-		# save transfrom model
-		filename1 = '%s_%d_dimensions1.h5'%(self.filename_load,feature_dim)
-		# pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		if self.feature_dim_motif>0:
-			start = time.time()
-			motif_type_id = 4 # Truncated SVD
-			x_motif = self.dimension_reduction(x_ori_motif,feature_dim1,shuffle,sub_sample,motif_type_id)
-			stop = time.time()
-			print("feature transform motif %s"%(vec1[motif_type_id]),stop - start)
-			x1 = np.hstack((x_ori1[:,0:dim2],x,x_motif))
-
-			# save transfrom model
-			filename1 = '%s_%d_dimensions2.2.h5'%(self.filename_load,feature_dim1)
-			pickle.dump(self.dimension_model, open(filename1, 'wb'))
-		else:
-			x1 = np.hstack((x_ori1[:,0:dim2],x))
-
-		if normalize>=2:
-			sc = StandardScaler()
-			x1 = sc.fit_transform(x1)
-		# x_train1, x_test1 = x1[0:num_train], x1[num_train:num_train+num_test]
-		# print(x_train.shape,x_train1.shape,x_test.shape,x_test1.shape)
-		print('feature transform single',x1.shape)
-
-		return x1
-
-	def load_features_ori(self,chromvec):
-
-		x_vec1 = []
-		idx_sel_list1 = []
-		for t_chrom in chromvec:
-			cell_type1 = 'GM12878'
-			filename1 = '%s_chr%s-chr%s_chr10-chr10'%(cell_type1, t_chrom, t_chrom)
-			save_filename_ori = '%s_ori1.npy'%(filename1)
-			print(save_filename_ori)
-			if os.path.exists(save_filename_ori)==True:
-				print("loading %s"%(save_filename_ori))
-				# x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer, feature_dim_motif = np.load(save_filename_ori,allow_pickle=True)
-				x_train1_ori,train_sel_list,train_sel_idx,feature_dim_kmer,feature_dim_motif = pickle.load(open(save_filename_ori, 'rb'))
-				# self.feature_dim_motif = feature_dim_motif
-				print(x_train1_ori.shape)
-				x_vec1.extend(x_train1_ori)
-				idx_sel_list1.extend(train_sel_list)
-			else:
-				print("file does not exist!")
-
-		x_vec1 = np.asarray(x_vec1)
-		return x_vec1, idx_sel_list1
-
-	def load_features_ori_1(self,chromvec):
-
-		x_vec1 = []
-		idx_sel_list1 = []
-		for t_chrom in chromvec:
-			cell_type1 = 'GM12878'
-			filename1 = '%s_chr%s-chr%s_chr10-chr10'%(cell_type1, t_chrom, t_chrom)
-			save_filename_ori = '%s_ori1.npy'%(filename1)
-			print(save_filename_ori)
-			if os.path.exists(save_filename_ori)==True:
-				print("loading %s"%(save_filename_ori))
-				# x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer, feature_dim_motif = np.load(save_filename_ori,allow_pickle=True)
-				x_train1_ori,train_sel_list,train_sel_idx,feature_dim_kmer,feature_dim_motif = pickle.load(open(save_filename_ori, 'rb'))
-				# self.feature_dim_motif = feature_dim_motif
-				print(x_train1_ori.shape)
-				x_vec1.extend(x_train1_ori)
-				idx_sel_list1.extend(train_sel_list)
-			else:
-				print("file does not exist!")
-
-		x_vec1 = np.asarray(x_vec1)
-		return x_vec1, idx_sel_list1
-
-	def test_predict(self,model_path,train_chromvec,test_chromvec,feature_dim_transform,output_filename):
-
-		# x_train, train_sel_list1 = self.load_features_ori(train_chromvec)
-		# print('x_train', x_train.shape)
-		# vec1 = self.load_features_transform_predict(model_path,x_train,test_chromvec,feature_dim_transform)
-		vec1 = self.load_features_transform_predict_1(model_path,test_chromvec,feature_dim_transform,
-														output_filename)
-
-	def load_features_transform_predict(self,model_path,x_train,test_chromvec, feature_dim_transform):
-
-		# x_train_list1, train_sel_list1 = self.load_features_ori(train_chromvec)
-		feature_dim_motif = 769
-		# feature_dim_transform = [50,25]
-		tol = self.tol
-		L = self.flanking
-		run_id = self.run_id
-		flanking1 = self.flanking1
-		vec1 = []
-
-		context_size = 2*L+1
-		# config = dict(fc1_output_dim=5,fc2_output_dim=0,n_epochs=10)
-		# config = dict(feature_dim=x_train.shape[-1],output_dim=32,fc1_output_dim=0,fc2_output_dim=0,n_epochs=100,batch_size=128)
-		config = self.config
-		# config['feature_dim'] = x_train.shape[-1]
-		config['feature_dim'] = np.sum(feature_dim_transform)+21
-		config['lr'] = self.lr
-		config['activation'] = self.activation
-
-		model = get_model2a1_attention(context_size, config)
-		print('loading model...')
-		model.load_weights(model_path)
-
-		# self.load_local_serial(filename1)
-		# local_serial, local_signal = self.load_local_serial(filename1)			
-		for t_chrom in test_chromvec:
-			x_test1, test_sel_list1, _, _ = self.load_features_transform_single(x_train,[t_chrom],feature_dim_motif,feature_dim_transform)
-			t_chrom1 = 'chr%s'%(t_chrom)
-			id1 = np.where(self.chrom==t_chrom1)[0]
-			t_serial = self.serial[id1]
-			y_signal_test = self.signal[id1]
-			id2 = mapping_Idx(test_sel_list1[:,1],t_serial)		
-			y_test_temp1 = np.ones(x_test1.shape[0])
-
-			# prefix = self.filename_load
-			# # 1: PCA; 2: SVD for motif
-			# filename1 = '%s_%d_%d_%d_1.npy'%(prefix,type_id2,feature_dim[0],feature_dim[1])
-
-			# x_train1_trans, x_test1_trans = self.feature_transform(x_train1_ori, x_test_ori, feature_dim, shuffle, 
-			# 										sub_sample_ratio, type_id2, normalize)
-			# # np.save(filename1,(x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,
-			# #						train_sel_list,test_sel_list),allow_pickle=True)
-			# x_train1_trans,x_test1,y_signal_train1_ori,y_signal_test,train_sel_list,test_sel_list = np.load(filename1,allow_pickle=True)
-
-			# # x_test, y_test, vec_test, vec_test_local = sample_select2a(x_test1_trans, y_signal_test_ori, test_sel_list, tol, L)
-			x_test, y_test_temp, vec_test, vec_test_local = sample_select2a(x_test1, y_test_temp1, test_sel_list1, tol, L)
-			y_predicted_test = model.predict(x_test)
-
-			y_predicted_test_ori = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-			y_predicted_test = y_predicted_test_ori[id2]
-			print('predict', y_predicted_test_ori.shape, y_predicted_test.shape)
-			
-			# y_signal_train1, y_signal_test = self.load_signal(train_sel_idx, test_sel_idx)
-			# y_signal_train1_ori = signal_normalize(y_signal_train1,[0,1])
-			y_test = self.signal_normalize(y_signal_test,[0,1])
-
-			temp1 = score_2a(y_test, y_predicted_test)
-			vec1.append(temp1)
-			print(temp1)
-
-		return vec1
-
-	def load_features_transform_predict_1(self,model_path,test_chromvec, feature_dim_transform,output_filename):
-
-		# x_train_list1, train_sel_list1 = self.load_features_ori(train_chromvec)
-		feature_dim_motif = 769
-		# feature_dim_transform = [50,25]
-		tol = self.tol
-		L = self.flanking
-		run_id = self.run_id
-		flanking1 = self.flanking1
-		vec1 = []
-
-		context_size = 2*L+1
-		# config = dict(fc1_output_dim=5,fc2_output_dim=0,n_epochs=10)
-		# config = dict(feature_dim=x_train.shape[-1],output_dim=32,fc1_output_dim=0,fc2_output_dim=0,n_epochs=100,batch_size=128)
-		config = self.config
-		# config['feature_dim'] = x_train.shape[-1]
-		config['feature_dim'] = np.sum(feature_dim_transform)+21
-		config['lr'] = self.lr
-		config['activation'] = self.activation
-
-		model = get_model2a1_attention(context_size, config)
-		print('loading model...')
-		model.load_weights(model_path)
-		type_id2 = 0
-		feature_dim = feature_dim_transform
-
-		# self.load_local_serial(filename1)
-		# local_serial, local_signal = self.load_local_serial(filename1)			
-		for t_chrom in test_chromvec:
-			# x_test1, test_sel_list1, _, _ = self.load_features_transform_single(x_train,[t_chrom],feature_dim_motif,feature_dim_transform)
-			# t_chrom1 = 'chr%s'%(t_chrom)
-			# id1 = np.where(self.chrom==t_chrom1)[0]
-			# t_serial = self.serial[id1]
-			# y_signal_test = self.signal[id1]
-			# id2 = mapping_Idx(test_sel_list1[:,1],t_serial)		
-			# y_test_temp1 = np.ones(x_test1.shape[0])
-
-			# prefix = self.filename_load
-			# # 1: PCA; 2: SVD for motif chr1-chr5_chr11-chr11_0_50_50_1
-			prefix = '%s_chr1-chr5_chr%s-chr%s'%(self.cell_type,str(t_chrom),str(t_chrom))
-			filename1 = '%s_%d_%d_%d_1.npy'%(prefix,type_id2,feature_dim[0],feature_dim[1])
-			# x_train1_trans, x_test1_trans = self.feature_transform(x_train1_ori, x_test_ori, feature_dim, shuffle, 
-			# 										sub_sample_ratio, type_id2, normalize)
-			# np.save(filename1,(x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,
-			#						train_sel_list,test_sel_list),allow_pickle=True)
-			x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,train_sel_list,test_sel_list = np.load(filename1,allow_pickle=True)
-
-			x_test, y_test, vec_test, vec_test_local = sample_select2a(x_test1_trans, y_signal_test_ori, test_sel_list, tol, L)
-			# x_test, y_test_temp, vec_test, vec_test_local = sample_select2a(x_test1, y_test_temp1, test_sel_list1, tol, L)
-			print(x_test.shape,y_test.shape)
-			y_predicted_test = model.predict(x_test)
-
-			layer_name = 'attention1'
-			intermediate_layer = Model(inputs=model.input,
-								 outputs=model.get_layer(layer_name).output)
-			feature1, attention = intermediate_layer.predict(x_test)
-			print('attention1',attention.shape)
-			dict1 = dict()
-			dict1['attention1'] = attention
-			dict1['vec1'] = vec_test
-			dict1['vec1_local'] = vec_test_local
-			np.save('attention1_%s.npy'%(output_filename),dict1,allow_pickle=True)
-
-			# y_predicted_test_ori = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-			# y_predicted_test = y_predicted_test_ori[id2]
-			# print('predict', y_predicted_test_ori.shape, y_predicted_test.shape)
-			y_predicted_test = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-			
-			# y_signal_train1, y_signal_test = self.load_signal(train_sel_idx, test_sel_idx)
-			# y_signal_train1_ori = signal_normalize(y_signal_train1,[0,1])
-			# y_test = signal_normalize(y_signal_test,[0,1])
-			y_test = np.ravel(y_test[:,L])
-			# b1 = np.isnan(y_test)
-			# b2 = np.isnan(y_predicted_test)
-			# b1_1 = np.isinf(y_test)
-			# b2_1 = np.isinf(y_predicted_test)
-			# b1_2 = np.isfinite(y_test)
-			# b2_2 = np.isfinite(y_predicted_test)
-			# print(y_signal_test_ori)
-			# print(y_test)
-			# print(y_predicted_test)
-			# print(np.sum(b1),np.sum(b2),np.sum(b1_1),np.sum(b2_1),np.sum(b1_2),np.sum(b2_2))
-
-			temp1 = score_2a(y_test, y_predicted_test)
-			vec1.append(temp1)
-			print(temp1)
-
-		vec1 = np.asarray(vec1)
-		np.savetxt('test_3.txt',vec1,fmt='%.7f',delimiter='\t')
-
-		return vec1
-
-	def load_features_transform_predict_2(self,model_path,test_chromvec,feature_dim_transform):
-
-		# x_train_list1, train_sel_list1 = self.load_features_ori(train_chromvec)
-		feature_dim_motif = 769
-		# feature_dim_transform = [50,25]
-		tol = self.tol
-		L = self.flanking
-		run_id = self.run_id
-		flanking1 = self.flanking1
-		vec1 = []
-
-		context_size = 2*L+1
-		# config = dict(fc1_output_dim=5,fc2_output_dim=0,n_epochs=10)
-		# config = dict(feature_dim=x_train.shape[-1],output_dim=32,fc1_output_dim=0,fc2_output_dim=0,n_epochs=100,batch_size=128)
-		config = self.config
-		# config['feature_dim'] = x_train.shape[-1]
-		config['feature_dim'] = np.sum(feature_dim_transform)+21
-		config['lr'] = self.lr
-		config['activation'] = self.activation
-
-		model = get_model2a1_attention(context_size, config)
-		print('loading model...')
-		model.load_weights(model_path)
-		type_id2 = 0
-		feature_dim = feature_dim_transform
-
-		# self.load_local_serial(filename1)
-		# local_serial, local_signal = self.load_local_serial(filename1)			
-		for t_chrom in test_chromvec:
-			# x_test1, test_sel_list1, _, _ = self.load_features_transform_single(x_train,[t_chrom],feature_dim_motif,feature_dim_transform)
-			# t_chrom1 = 'chr%s'%(t_chrom)
-			# id1 = np.where(self.chrom==t_chrom1)[0]
-			# t_serial = self.serial[id1]
-			# y_signal_test = self.signal[id1]
-			# id2 = mapping_Idx(test_sel_list1[:,1],t_serial)		
-			# y_test_temp1 = np.ones(x_test1.shape[0])
-
-			# prefix = self.filename_load
-			# # 1: PCA; 2: SVD for motif chr1-chr5_chr11-chr11_0_50_50_1
-			prefix = 'chr1-chr5_chr%s-chr%s'%(str(t_chrom),str(t_chrom))
-			filename1 = '%s_%d_%d_%d_1.npy'%(prefix,type_id2,feature_dim[0],feature_dim[1])
-
-			# x_train1_trans, x_test1_trans = self.feature_transform(x_train1_ori, x_test_ori, feature_dim, shuffle, 
-			# 										sub_sample_ratio, type_id2, normalize)
-			# np.save(filename1,(x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,
-			#						train_sel_list,test_sel_list),allow_pickle=True)
-			x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,train_sel_list,test_sel_list = np.load(filename1,allow_pickle=True)
-
-			x_test, y_test_temp, vec_test, vec_test_local = sample_select2a(x_test1_trans, y_signal_test_ori, test_sel_list, tol, L)
-			# x_test, y_test_temp, vec_test, vec_test_local = sample_select2a(x_test1, y_test_temp1, test_sel_list1, tol, L)
-			y_predicted_test = model.predict(x_test)
-
-			# y_predicted_test_ori = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-			# y_predicted_test = y_predicted_test_ori[id2]
-			# print('predict', y_predicted_test_ori.shape, y_predicted_test.shape)
-			# y_predicted_test = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-
-			y_predicted_test_ori = read_predict(y_predicted_test, vec_test_local, [], flanking1)
-
-			t_chrom1 = 'chr%s'%(t_chrom)
-			id1 = np.where(self.chrom==t_chrom1)[0]
-			t_serial = self.serial[id1]
-			y_signal_test = self.signal[id1]
-
-			id1_1 = np.where(self.chrom_ori==t_chrom1)[0]
-			id2 = mapping_Idx(self.serial_ori[id1_1],t_serial)		
-
-			y_predicted_test = y_predicted_test_ori[id2]
-			print('predict', x_test.shape, y_predicted_test_ori.shape, y_predicted_test.shape)
-			
-			# y_signal_train1, y_signal_test = self.load_signal(train_sel_idx, test_sel_idx)
-			# y_signal_train1_ori = signal_normalize(y_signal_train1,[0,1])
-			y_test = self.signal_normalize(y_signal_test,[0,1])
-
-			# y_signal_train1, y_signal_test = self.load_signal(train_sel_idx, test_sel_idx)
-			# y_signal_train1_ori = signal_normalize(y_signal_train1,[0,1])
-			# y_test = signal_normalize(y_signal_test,[0,1])
-			# y_test = np.ravel(y_test[:,L])
-			b1 = np.isnan(y_test)
-			b2 = np.isnan(y_predicted_test)
-			b1_1 = np.isinf(y_test)
-			b2_1 = np.isinf(y_predicted_test)
-			b1_2 = np.isfinite(y_test)
-			b2_2 = np.isfinite(y_predicted_test)
-			print(y_signal_test_ori)
-			print(y_test)
-			print(y_predicted_test)
-			print(np.sum(b1),np.sum(b2),np.sum(b1_1),np.sum(b2_1),np.sum(b1_2),np.sum(b2_2))
-
-			temp1 = score_2a(y_test, y_predicted_test)
-			print(t_chrom)
-			vec1.append(temp1)
-			print(temp1)
-
-		vec1 = np.asarray(vec1)
-		np.savetxt('test_1.txt',vec1,fmt='%.7f',delimiter='\t')
-
-		return vec1
-
-	def load_features_transform_single_1(self,test_chromvec,feature_dim_motif,feature_dim_transform=[50,50]):
-
-		self.feature_dim_motif = feature_dim_motif
-		# kmer_size1, kmer_size2 = self.kmer_size[0], self.kmer_size[1]
-
-		# prefix = self.filename_load
-		# save_filename_ori = '%s_%s_ori1.npy'%(prefix,self.cell_type)
-		# self.save_filename_ori = save_filename_ori
-		# x_train_list1, train_sel_list1 = self.load_features_ori(train_chromvec)
-		x_test_list1, test_sel_list1 = self.load_features_ori(test_chromvec)
-		# x_train, x_test = np.asarray(x_train_list1), np.asarray(x_test_list1)
-		# num_train, num_test = x_train.shape[0], x_test.shape[0]
-		# x_ori1 = np.vstack((x_train,x_test))
-		# print('x_ori1', x_ori1.shape)
-
-		regionlist_filename = 'hg38.centromere.bed'
-		test_sel_list1 = np.asarray(test_sel_list1)
-		print(test_sel_list1)
-		serial1 = test_sel_list1[:,1]
-		print(serial1)
-		serial_list1 = self.select_region(serial1, regionlist_filename)
-		id1 = mapping_Idx(serial1,serial_list1)
-		print(id1)
-		
-		x_ori1 = x_test_list1[id1]
-		test_sel_list1 = test_sel_list1[id1]
-
-		dim1 = x_ori1.shape[1]
-		# feature_dim_kmer = np.sum(self.feature_dim_kmer)
-		feature_dim_kmer = 5120
-		dim2 = dim1-feature_dim_kmer-self.feature_dim_motif
-		feature_dim = feature_dim_transform[0]
-		feature_dim1 = feature_dim_transform[1]
-		
-		print("feature_dim_kmer",feature_dim_kmer,dim2)
-		feature_kmer_idx = np.asarray(range(dim2,dim2+feature_dim_kmer))
-		x_ori = x_ori1[:,feature_kmer_idx]
-		feature_motif_idx = np.asarray(range(dim2+feature_dim_kmer,dim1))
-		x_ori_motif = x_ori1[:,feature_motif_idx]
-		# num_train, num_test = x_train.shape[0], x_test.shape[0]
-
-		vec1 = ['PCA','Incremental PCA','Kernel PCA','Sparse PCA','SVD','GRP','SRP','MDS','ISOMAP','Minibatch','ICA','tSNE','LLE','Encoder']
-
-		shuffle = 0
-		sub_sample = -1
-		type_id = 0
-		start = time.time()
-		x = self.dimension_reduction(x_ori,feature_dim,shuffle,sub_sample,type_id)
-		stop = time.time()
-		print("feature transform %s"%(vec1[type_id]),stop - start)
-
-		# save transform model
-		feature_dim, feature_dim1 = feature_dim_transform[0], feature_dim_transform[1]
-		# filename1 = '%s_chr%s_%d_dimensions1.h5'%(self.filename_load,test_chromvec[0],feature_dim)
-		filename1 = 'chr%s_%d_dimensions1.h5'%(test_chromvec[0],feature_dim)
-		# pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		start = time.time()
-		motif_type_id = 4 # Truncated SVD
-		x_motif = self.dimension_reduction(x_ori_motif,feature_dim1,shuffle,sub_sample,motif_type_id)
-		stop = time.time()
-		print("feature transform motif %s"%(vec1[motif_type_id]),stop - start)
-		x1 = np.hstack((x_ori1[:,0:dim2],x,x_motif))
-
-		# save transfrom model
-		filename1 = '%s_chr%s_%d_dimensions2.2.h5'%(self.filename_load,test_chromvec[0],feature_dim1)
-		pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		print("feature transform")
-		# filename1 = 'test_chr10_%d_1_5_3.npy'%(type_id2)
-		# prefix = self.filename_load
-		# 1: PCA; 2: SVD for motif
-		filename1 = 'chr%s_chr%s_%d_%d_%d.npy'%(test_chromvec[0],test_chromvec[-1],type_id,feature_dim,feature_dim1)
-
-		# test_sel_list1 = np.asarray(test_sel_list1)
-		print(len(test_sel_list1))
-		vec1 = dict()
-		vec1['x1'], vec1['idx'] = x1, test_sel_list1
-		np.save(filename1,vec1,allow_pickle=True)
-
-		return x1, test_sel_list1
-
-	def load_features_transform_single_2(self,test_chromvec,feature_dim_motif,feature_dim_transform=[50,50]):
-
-		self.feature_dim_motif = feature_dim_motif
-		x_test_list1, test_sel_list1 = self.load_features_ori(test_chromvec)
-		x_ori1 = x_test_list1
-
-		dim1 = x_ori1.shape[1]
-		# feature_dim_kmer = np.sum(self.feature_dim_kmer)
-		feature_dim_kmer = 5120
-		dim2 = dim1-feature_dim_kmer-self.feature_dim_motif
-		feature_dim = feature_dim_transform[0]
-		feature_dim1 = feature_dim_transform[1]
-		
-		print("feature_dim_kmer",feature_dim_kmer,dim2)
-		feature_kmer_idx = np.asarray(range(dim2,dim2+feature_dim_kmer))
-		x_ori = x_ori1[:,feature_kmer_idx]
-		feature_motif_idx = np.asarray(range(dim2+feature_dim_kmer,dim1))
-		x_ori_motif = x_ori1[:,feature_motif_idx]
-		# num_train, num_test = x_train.shape[0], x_test.shape[0]
-
-		vec1 = ['PCA','Incremental PCA','Kernel PCA','Sparse PCA','SVD','GRP','SRP','MDS','ISOMAP','Minibatch','ICA','tSNE','LLE','Encoder']
-
-		shuffle = 0
-		sub_sample = -1
-		type_id = 0
-		start = time.time()
-		x = self.dimension_reduction(x_ori,feature_dim,shuffle,sub_sample,type_id)
-		stop = time.time()
-		print("feature transform %s"%(vec1[type_id]),stop - start)
-
-		# save transform model
-		feature_dim, feature_dim1 = feature_dim_transform[0], feature_dim_transform[1]
-		# filename1 = '%s_chr%s_%d_dimensions1.h5'%(self.filename_load,test_chromvec[0],feature_dim)
-		filename1 = 'chr%s_%d_dimensions1.h5'%(test_chromvec[0],feature_dim)
-		# pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		start = time.time()
-		if feature_dim_motif>0:
-			motif_type_id = 4 # Truncated SVD
-			x_motif = self.dimension_reduction(x_ori_motif,feature_dim1,shuffle,sub_sample,motif_type_id)
-			stop = time.time()
-			print("feature transform motif %s"%(vec1[motif_type_id]),stop - start)
-			x1 = np.hstack((x_ori1[:,0:dim2],x,x_motif))
-
-			# save transfrom model
-			filename1 = '%s_chr%s_%d_dimensions2.2.h5'%(self.filename_load,test_chromvec[0],feature_dim1)
-			pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		print("feature transform")
-		# filename1 = 'test_chr10_%d_1_5_3.npy'%(type_id2)
-		# prefix = self.filename_load
-		# 1: PCA; 2: SVD for motif
-		filename1 = 'chr%s_chr%s_%d_%d_%d.npy'%(test_chromvec[0],test_chromvec[-1],type_id,feature_dim,feature_dim1)
-
-		# test_sel_list1 = np.asarray(test_sel_list1)
-		print(len(test_sel_list1))
-		vec1 = dict()
-		vec1['x1'], vec1['idx'] = x1, test_sel_list1
-		np.save(filename1,vec1,allow_pickle=True)
-
-		return x1, test_sel_list1
-
-	def load_features_transform_single(self,x_train_list1,test_chromvec,feature_dim_motif,feature_dim_transform=[50,50]):
-
-		self.feature_dim_motif = feature_dim_motif
-		# kmer_size1, kmer_size2 = self.kmer_size[0], self.kmer_size[1]
-
-		# prefix = self.filename_load
-		# save_filename_ori = '%s_%s_ori1.npy'%(prefix,self.cell_type)
-		# self.save_filename_ori = save_filename_ori
-		# x_train_list1, train_sel_list1 = self.load_features_ori(train_chromvec)
-		x_test_list1, test_sel_list1 = self.load_features_ori(test_chromvec)
-		x_train, x_test = np.asarray(x_train_list1), np.asarray(x_test_list1)
-		num_train, num_test = x_train.shape[0], x_test.shape[0]
-		x_ori1 = np.vstack((x_train,x_test))
-		print('x_ori1', x_ori1.shape)
-
-		dim1 = x_ori1.shape[1]
-		# feature_dim_kmer = np.sum(self.feature_dim_kmer)
-		feature_dim_kmer = 5120
-		dim2 = dim1-feature_dim_kmer-self.feature_dim_motif
-		feature_dim = feature_dim_transform[0]
-		feature_dim1 = feature_dim_transform[1]
-		
-		print("feature_dim_kmer",feature_dim_kmer,dim2)
-		feature_kmer_idx = np.asarray(range(dim2,dim2+feature_dim_kmer))
-		x_ori = x_ori1[:,feature_kmer_idx]
-		feature_motif_idx = np.asarray(range(dim2+feature_dim_kmer,dim1))
-		x_ori_motif = x_ori1[:,feature_motif_idx]
-		num_train, num_test = x_train.shape[0], x_test.shape[0]
-
-		vec1 = ['PCA','Incremental PCA','Kernel PCA','Sparse PCA','SVD','GRP','SRP','MDS','ISOMAP','Minibatch','ICA','tSNE','LLE','Encoder']
-
-		shuffle = 0
-		sub_sample = -1
-		type_id = 0
-		start = time.time()
-		x = self.dimension_reduction(x_ori,feature_dim,shuffle,sub_sample,type_id)
-		stop = time.time()
-		print("feature transform %s"%(vec1[type_id]),stop - start)
-
-		# save transform model
-		feature_dim, feature_dim1 = feature_dim_transform[0], feature_dim_transform[1]
-		# filename1 = '%s_chr%s_%d_dimensions1.h5'%(self.filename_load,test_chromvec[0],feature_dim)
-		filename1 = 'chr%s_%d_dimensions1.h5'%(test_chromvec[0],feature_dim)
-		# pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		start = time.time()
-		if feature_dim_motif>0:
-			motif_type_id = 4 # Truncated SVD
-			x_motif = self.dimension_reduction(x_ori_motif,feature_dim1,shuffle,sub_sample,motif_type_id)
-			stop = time.time()
-			print("feature transform motif %s"%(vec1[motif_type_id]),stop - start)
-			x1 = np.hstack((x_ori1[:,0:dim2],x,x_motif))
-
-			# save transfrom model
-			filename1 = '%s_chr%s_%d_dimensions2.2.h5'%(self.filename_load,test_chromvec[0],feature_dim1)
-			pickle.dump(self.dimension_model, open(filename1, 'wb'))
-
-		# if normalize>=2:
-		# 	sc = StandardScaler()
-		# 	x1 = sc.fit_transform(x1)
-		x_train1, x_test1 = x1[0:num_train], x1[num_train:num_train+num_test]
-		print(x_train.shape,x_train1.shape,x_test.shape,x_test1.shape)
-
-		print("feature transform")
-			# filename1 = 'test_chr10_%d_1_5_3.npy'%(type_id2)
-		# prefix = self.filename_load
-		# 1: PCA; 2: SVD for motif
-		filename1 = 'chr%s_%d_%d_%d.npy'%(test_chromvec[0],type_id,feature_dim[0],feature_dim[1])
-
-		test_sel_list1 = np.asarray(test_sel_list1)
-		np.save(filename1,(x_test1,test_sel_list1),allow_pickle=True)
-
-		return x_test1, test_sel_list1, x_train1, dim1
 
 	def load_features_single(self,file_path,file_prefix_kmer,kmer_size1,kmer_size2):
 
@@ -13438,23 +6693,13 @@ class _Base1(BaseEstimator):
 			else:
 				pass
 				
-			# if feature_type>-1:
-			# 	x_train1_ori, x_test_ori = x_train1_ori[:,temp1], x_test_ori[:,temp1]
-
 			if feature_type>-1:
 				x_train1_ori = x_train1_ori[:,temp1]
 
 			self.x_train1_ori = x_train1_ori
-			# self.y_signal_train1 = y_signal_train1
-			# self.x_test_ori = x_test_ori
-			# self.y_signal_test = y_signal_test
 			self.feature_dim_kmer = feature_dim_kmer
 			self.train_sel_list = train_sel_list
-			# self.test_sel_list = test_sel_list
 			feature_dim_kmer_1 = np.sum(feature_dim_kmer)
-
-			# prefix = self.filename_load
-			# save_filename_ori = '%s_%s_ori1.npy'%(prefix,self.cell_type)
 
 			filename1 = '%s_chr%s-chr%s_chr%s-chr%s'%(self.cell_type, t_chrom, t_chrom, self.test_chromvec[0], self.test_chromvec[-1])
 			save_filename_ori = '%s_ori1.npy'%(filename1)
@@ -13462,11 +6707,6 @@ class _Base1(BaseEstimator):
 			
 			d1 = (x_train1_ori,train_sel_list,train_sel_idx,feature_dim_kmer,self.feature_dim_motif)
 			pickle.dump(d1, open(save_filename_ori, 'wb'), protocol=4)
-
-			# print(x_train1_ori.shape, y_signal_train1.shape, x_test_ori.shape, y_signal_test.shape)
-			# print(x_train1_ori.shape, x_test_ori.shape)
-
-			# return x_train1_ori, x_test_ori, y_signal_train1, y_signal_test, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer_1
 
 		# return x_train1_ori, train_sel_list, train_sel_idx, feature_dim_kmer_1
 		return True
@@ -13488,7 +6728,6 @@ class _Base1(BaseEstimator):
 		temp1 = serial[id1]
 		n1 = len(temp1)
 		idx_vec = np.vstack(([int(chrom_id)]*n1,temp1)).T
-		# train_sel_list.extend(temp2)	# chrom_id, serial
 
 		# load kmer features
 		file_path = self.file_path
@@ -13498,7 +6737,6 @@ class _Base1(BaseEstimator):
 		t_signal1 = self.load_kmer_feature(filename2,kmer_size,trans_id1)
 		feature_dim_kmer1 = t_signal1.shape[1]
 
-		# filename2 = '%s/training_mtx/Kmer7/training2_kmer_%s.npy'%(path2,chrom_id)
 		if kmer_size2>0:
 			kmer_size = kmer_size2
 			filename2 = '%s/Kmer%d/training_kmer_%s.npy'%(file_path,kmer_size,chrom_id)
@@ -13539,7 +6777,6 @@ class _Base1(BaseEstimator):
 		temp1 = serial[id1]
 		n1 = len(temp1)
 		idx_vec = np.vstack(([int(chrom_id)]*n1,temp1)).T
-		# train_sel_list.extend(temp2)	# chrom_id, serial
 
 		# load phyloP scores
 		# filename3 = '%s/phyloP_chr%s.txt'%(file_path,chrom_id)
@@ -13549,12 +6786,6 @@ class _Base1(BaseEstimator):
 		feature_idx1 = self.feature_idx1
 		t_phyloP = self.load_phyloP_score(filename,serial[id1],feature_idx1)
 		print('phyloP',filename, t_phyloP.shape)
-
-		# load gc scores
-		# filename = '%s/training_gc_%s.txt'%(file_path,species_name)
-		# feature_idx = self.feature_idx
-		# gc_data_ori = data_list[0]
-		# t_gc = self.load_gc_feature(gc_data_ori,serial_ori,serial[id1],feature_idx)
 
 		return t_phyloP, idx_vec, id1_ori, id1
 
@@ -13650,22 +6881,8 @@ class _Base1(BaseEstimator):
 		x_test, test_sel_idx, test_sel_list = self.load_features_sub(self.test_chromvec,serial_ori,chrom_ori,chrom,serial)
 
 		x_train1_ori, x_test_ori = np.asarray(x_train1), np.asarray(x_test)
-		# x_train1 = x_train1[:,feature_idx]
-		# x_test = x_test[:,feature_idx]
-		# if type_id==1 or type_id==2:
-		# 	y_signal_train1 = np.hstack((signal[train_sel_idx],t_signal))
-		# else:
-		# 	y_signal_train1 = signal[train_sel_idx]
-
-		# y_signal_train1 = signal[train_sel_idx]
-		# y_signal_test = signal[test_sel_idx]
-		# print(x_train1.shape,y_signal_train1.shape,len(train_sel_idx),len(test_sel_idx))
 
 		print(x_train1.shape,len(train_sel_idx),len(test_sel_idx))
-
-		# normalize the signals
-		# y_signal_train1_ori = signal_normalize(y_signal_train1,[0,1])
-		# y_signal_test_ori = signal_normalize(y_signal_test,[0,1])
 
 		feature_idx = self.feature_idx
 		f_id1 = np.asarray(range(0,len(feature_idx)))
@@ -13696,18 +6913,12 @@ class _Base1(BaseEstimator):
 			x_train1_ori, x_test_ori = x_train1_ori[:,temp1], x_test_ori[:,temp1]
 
 		self.x_train1_ori = x_train1_ori
-		# self.y_signal_train1 = y_signal_train1
 		self.x_test_ori = x_test_ori
-		# self.y_signal_test = y_signal_test
 		self.feature_dim_kmer = feature_dim_kmer
 		self.train_sel_list = train_sel_list
 		self.test_sel_list = test_sel_list
 		feature_dim_kmer_1 = np.sum(feature_dim_kmer)
-
-		# print(x_train1_ori.shape, y_signal_train1.shape, x_test_ori.shape, y_signal_test.shape)
-		print(x_train1_ori.shape, x_test_ori.shape)
-
-		# return x_train1_ori, x_test_ori, y_signal_train1, y_signal_test, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer_1
+		# print(x_train1_ori.shape, x_test_ori.shape)
 
 		return x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer_1
 
@@ -13720,11 +6931,8 @@ class _Base1(BaseEstimator):
 		return y_signal_train1, y_signal_test
 	
 	# the mapped indices of selected regions
-	def load_map_idx(self, ref_filename, filename1):
+	def load_map_idx(self,ref_filename,filename1):
 
-		# path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-		# filename3 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-		# filename3a = '%s/estimate_rt/estimate_rt_%s.sel.txt'%(path1,species_name)
 		temp1 = pd.read_csv(ref_filename,sep='\t')
 		temp2 = pd.read_csv(filename1,sep='\t')
 		colname1, colname2 = list(temp1), list(temp2)
@@ -13735,9 +6943,9 @@ class _Base1(BaseEstimator):
 
 		return serial1, serial2, map_idx
 
+	# load and save the predicted genomic signals
 	def load_predicted_signal(self,filename1,output_filename,x_min=0,x_max=1):
 
-		# filename1 = 'feature_transform_0_50_600.npy'
 		data1 = np.load(filename1)
 		data2 = data1[()]
 		y_predicted_valid = data2[0]['y_predicted_valid']
@@ -13756,14 +6964,10 @@ class _Base1(BaseEstimator):
 		fields = ['chrom','start','stop','signal','predicted']
 		valid1 = pd.DataFrame(columns=fields)
 		valid1['chrom'], valid1['start'], valid1['stop'], valid1['signal'], valid1['predicted'] = self.chrom[id1], self.start[id1], self.stop[id1], y_valid, y_predicted_valid
-		# valid2 = pd.DataFrame(columns=fields)
-		# valid2['chrom'], valid2['start'], valid2['stop'], valid2['signal'] = self.chrom[id1], self.start[id1], self.stop[id1], y_predicted_valid
 
 		test1 = pd.DataFrame(columns=fields)
 		test1['chrom'],test1['start'], test1['stop'], test1['signal'], test1['predicted'] = self.chrom[id2], self.start[id2], self.stop[id2], y_test, y_predicted_test
-		# test2 = pd.DataFrame(columns=fields)
-		# test2['chrom'],test2['start'], test2['stop'], test2['signal'] = self.chrom[id2], self.start[id2], self.stop[id2], y_predicted_test
-
+		
 		valid1.to_csv('valid_%s.txt'%(output_filename),header=True,index=False,sep='\t')
 		test1.to_csv('test_%s.txt'%(output_filename),header=True,index=False,sep='\t')
 
@@ -13771,14 +6975,6 @@ class _Base1(BaseEstimator):
 
 	def load_features_transform(self,file_path,file_prefix_kmer,prefix,feature_dim_motif,feature_dim_transform=[50,50]):
 
-		# train_sel_idx, test_sel_idx = [], []
-		# train_sel_list, test_sel_list = [], []
-		# data_vec = []
-		# x_train1, x_test = [], []
-		# if type_id==0 or type_id==2:
-		# 	ratio = 1
-		# else:
-		# 	ratio = 0.5
 		self.feature_dim_motif = feature_dim_motif
 		kmer_size1, kmer_size2 = self.kmer_size[0], self.kmer_size[1]
 
@@ -13788,116 +6984,42 @@ class _Base1(BaseEstimator):
 
 		if os.path.exists(save_filename_ori)==True:
 			print("loading %s"%(save_filename_ori))
-			# x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer, feature_dim_motif = np.load(save_filename_ori,allow_pickle=True)
 			x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer, feature_dim_motif = pickle.load(open(save_filename_ori, 'rb'))
 			self.feature_dim_motif = feature_dim_motif
 		else:
 			print("loading...")
 			x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer = self.load_features(file_path,file_prefix_kmer,kmer_size1,kmer_size2)
-			# np.save(self.save_filename_ori,(x_train1_ori,x_test_ori,train_sel_list,test_sel_list,train_sel_idx,test_sel_idx,feature_dim_kmer, self.feature_dim_motif),allow_pickle=True)
 			d1 = (x_train1_ori,x_test_ori,train_sel_list,test_sel_list,train_sel_idx,test_sel_idx,feature_dim_kmer, self.feature_dim_motif)
 			pickle.dump(d1, open(save_filename_ori, 'wb'), protocol=4)
 
 		y_signal_train1, y_signal_test = self.load_signal(train_sel_idx, test_sel_idx)
 		y_signal_train1_ori = self.signal_normalize(y_signal_train1,[0,1])
 		y_signal_test_ori = self.signal_normalize(y_signal_test,[0,1])
-
-		print(x_train1_ori.shape, y_signal_train1.shape, x_test_ori.shape, y_signal_test.shape)
-
-		feature_dim = feature_dim_transform
-		sub_sample_ratio = 1
-		shuffle = 0
-		normalize = 0
-		vec2 = dict()
-		m_corr, m_explain = [0,0], [0,0]
-		# config = {'n_epochs':n_epochs,'feature_dim':feature_dim,'output_dim':output_dim,'fc1_output_dim':fc1_output_dim}
-		train_sel_list, test_sel_list = np.asarray(train_sel_list), np.asarray(test_sel_list)
-		self.train_sel_list, self.test_sel_list = train_sel_list, test_sel_list
-		tol = self.tol
-		L = self.flanking
-		print(train_sel_list[0:5])
-		print(test_sel_list[0:5])
-		print(feature_dim_kmer, feature_dim_transform)
-		self.feature_dim_kmer = feature_dim_kmer
-
-		for type_id2 in self.t_list:
-			# np.save(filename1)
-			print("feature transform")
-			# filename1 = 'test_chr10_%d_1_5_3.npy'%(type_id2)
-			prefix = self.filename_load
-			# 1: PCA; 2: SVD for motif
-			filename1 = '%s_%d_%d_%d_1.npy'%(prefix,type_id2,feature_dim[0],feature_dim[1])
-
-			x_train1_trans, x_test1_trans = self.feature_transform(x_train1_ori, x_test_ori, feature_dim, shuffle, 
-													sub_sample_ratio, type_id2, normalize)
-			np.save(filename1,(x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,
-									train_sel_list,test_sel_list),allow_pickle=True)
-
-		return x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,train_sel_list,test_sel_list
-
-	def load_features_transform_1(self,file_path,file_prefix_kmer,prefix,feature_dim_motif,feature_dim_transform=[50,50]):
-
-		self.feature_dim_motif = feature_dim_motif
-		kmer_size1, kmer_size2 = self.kmer_size[0], self.kmer_size[1]
-
-		prefix = self.filename_load
-		save_filename_ori = '%s_%s_ori1.npy'%(prefix,self.cell_type)
-		self.save_filename_ori = save_filename_ori
-
-		if os.path.exists(save_filename_ori)==True:
-			print("loading %s"%(save_filename_ori))
-			# x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer, feature_dim_motif = np.load(save_filename_ori,allow_pickle=True)
-			x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer, feature_dim_motif = pickle.load(open(save_filename_ori, 'rb'))
-			self.feature_dim_motif = feature_dim_motif
-		else:
-			print("loading...")
-			x_train1_ori, x_test_ori, train_sel_list, test_sel_list, train_sel_idx, test_sel_idx, feature_dim_kmer = self.load_features(file_path,file_prefix_kmer,kmer_size1,kmer_size2)
-			# np.save(self.save_filename_ori,(x_train1_ori,x_test_ori,train_sel_list,test_sel_list,train_sel_idx,test_sel_idx,feature_dim_kmer, self.feature_dim_motif),allow_pickle=True)
-			d1 = (x_train1_ori,x_test_ori,train_sel_list,test_sel_list,train_sel_idx,test_sel_idx,feature_dim_kmer, self.feature_dim_motif)
-			pickle.dump(d1, open(save_filename_ori, 'wb'), protocol=4)
-
-		
-		y_signal_train1, y_signal_test, serial1, serial2 = self.load_signal_1(self.train_chromvec, self.test_chromvec)
-		id1 = mapping_Idx(train_sel_list[:,1],serial1)
-		x_train1_ori = x_train1_ori[id1]
-
-		id2 = mapping_Idx(test_sel_list[:,1],serial2)
-		x_test_ori = x_test_ori[id1]
-
-		#y_signal_train1, y_signal_test = self.load_signal(train_sel_idx, test_sel_idx)
-		y_signal_train1_ori = self.signal_normalize(y_signal_train1,[0,1])
-		y_signal_test_ori = self.signal_normalize(y_signal_test,[0,1])
-
-		print(x_train1_ori.shape, y_signal_train1.shape, x_test_ori.shape, y_signal_test.shape)
+		# print(x_train1_ori.shape, y_signal_train1.shape, x_test_ori.shape, y_signal_test.shape)
 
 		feature_dim = feature_dim_transform
 		sub_sample_ratio = 1
 		shuffle = 0
 		normalize = 0
-		vec2 = dict()
-		m_corr, m_explain = [0,0], [0,0]
-		# config = {'n_epochs':n_epochs,'feature_dim':feature_dim,'output_dim':output_dim,'fc1_output_dim':fc1_output_dim}
 		train_sel_list, test_sel_list = np.asarray(train_sel_list), np.asarray(test_sel_list)
 		self.train_sel_list, self.test_sel_list = train_sel_list, test_sel_list
 		tol = self.tol
 		L = self.flanking
-		print(train_sel_list[0:5])
-		print(test_sel_list[0:5])
-		print(feature_dim_kmer, feature_dim_transform)
+		# print(feature_dim_kmer, feature_dim_transform)
 		self.feature_dim_kmer = feature_dim_kmer
 
 		for type_id2 in self.t_list:
-			# np.save(filename1)
 			print("feature transform")
-			# filename1 = 'test_chr10_%d_1_5_3.npy'%(type_id2)
 			prefix = self.filename_load
 			# 1: PCA; 2: SVD for motif
 			filename1 = '%s_%d_%d_%d_1.npy'%(prefix,type_id2,feature_dim[0],feature_dim[1])
 
 			x_train1_trans, x_test1_trans = self.feature_transform(x_train1_ori, x_test_ori, feature_dim, shuffle, 
-													sub_sample_ratio, type_id2, normalize)
+																sub_sample_ratio, type_id2, normalize)
 			np.save(filename1,(x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,
 									train_sel_list,test_sel_list),allow_pickle=True)
 
 		return x_train1_trans,x_test1_trans,y_signal_train1_ori,y_signal_test_ori,train_sel_list,test_sel_list
+
+
 
