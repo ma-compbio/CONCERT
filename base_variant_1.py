@@ -357,10 +357,6 @@ def read_motif_1(filename,output_filename=-1):
 
 def read_gc_1(ref_filename,header,filename,output_filename):
 
-	# path1 = '/volume01/yy3/seq_data/dl/replication_timing'
-	# filename1 = '%s/estimate_rt/estimate_rt_%s.txt'%(path1,species_name)
-	# filename2a = 'test_seq_%s.1.txt'%(species_name)
-
 	sel_idx = []
 	file1 = pd.read_csv(ref_filename,header=header,sep='\t')
 	f_list = load_seq_altfeature(filename,sel_idx)
@@ -394,10 +390,9 @@ def generate_serial(filename1,chrom,start,stop):
 	chrom_vec += ['chrX']
 	chrom_vec += ['chrY']
 	print(chrom_vec)
-	print(chrom)
+	# print(chrom)
 	print(len(chrom))
 	
-	# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 	data1 = pd.read_csv(filename1,header=None,sep='\t')
 	ref_chrom, chrom_size = np.asarray(data1[0]), np.asarray(data1[1])
 	serial_start = 0
@@ -436,7 +431,6 @@ def generate_serial_local(filename1,chrom,start,stop,chrom_num):
 
 	t_chrom = np.unique(chrom)
 	
-	# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 	data1 = pd.read_csv(filename1,header=None,sep='\t')
 	ref_chrom, chrom_size = np.asarray(data1[0]), np.asarray(data1[1])
 	# serial_start = np.zeros(len(chrom))
@@ -472,7 +466,6 @@ def generate_serial_start(filename1,chrom,start,stop,chrom_num=19):
 	print(chrom)
 	print(len(chrom))
 	
-	# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 	data1 = pd.read_csv(filename1,header=None,sep='\t')
 	ref_chrom, chrom_size = np.asarray(data1[0]), np.asarray(data1[1])
 	serial_start = 0
@@ -718,7 +711,6 @@ class _Base1(BaseEstimator):
 		self.predict_type_id = 0
 		self.method = method
 		self.train = self.config['train_mode']
-		# self.path = '/mnt/yy3'
 		self.path = file_path
 		self.model_path = '%s/test_%d.h5'%(self.path,run_id)
 		self.pos_code = config['pos_code']
@@ -807,9 +799,6 @@ class _Base1(BaseEstimator):
 
 	def load_ref_serial(self, ref_filename, header=None):
 
-		# path2 = '/volume01/yy3/seq_data/dl/replication_timing'
-		# filename1 = '%s/estimate_rt/estimate_rt_%s.1.txt'%(path2,species_name)
-		# filename2a = 'test_seq_%s.1.txt'%(species_name)
 		if header==None:
 			file1 = pd.read_csv(ref_filename,header=header,sep='\t')
 		else:
@@ -2873,8 +2862,7 @@ class _Base1(BaseEstimator):
 		return vec1, dict1
 
 	# predict
-	def predict_test_1(self,idx_sel_list,x_test_ori,vec_serial,vec_local,
-						type_id=0,type_id1=1,est_attention=1,interval=2500):
+	def predict_test_1(self,idx_sel_list,x_test_ori,vec_serial,vec_local,type_id=0,type_id1=1,est_attention=1,interval=2500):
 
 		# load serial and feature vectors
 		ref_serial = idx_sel_list[:,1]
@@ -3371,39 +3359,24 @@ class _Base1(BaseEstimator):
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample_1(context_size,config)
 		elif model_type_id==6:
 			config['layer_norm'] = 2
-			# construct gumbel selector2
-			# get_model2a1_basic1_2
 			print('layer_norm',model_type_id,config['layer_norm'])
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample_2(context_size,config,layernorm_typeid=1)
-			#return -1
 		elif model_type_id==8:
 			config['layer_norm'] = 0
-			# construct gumbel selector2
-			# get_model2a1_basic1_2
 			print('layer_norm',model_type_id,config['layer_norm'])
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample_2(context_size,config,layernorm_typeid=0)
-			#return -1
 		elif model_type_id==9:
 			config['layer_norm'] = 1
-			# construct gumbel selector2
-			# get_model2a1_basic1_2
 			print('layer_norm',model_type_id,config['layer_norm'])
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample_2(context_size,config,layernorm_typeid=0)
-			#return -1
 		elif model_type_id==10:
 			config['layer_norm'] = 0
-			# construct gumbel selector2
-			# get_model2a1_basic1_2
 			print('layer_norm',model_type_id,config['layer_norm'])
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample_2(context_size,config,layernorm_typeid=1)
-			#return -1
 		elif model_type_id==11:
 			config['layer_norm'] = 1
-			# construct gumbel selector2
-			# get_model2a1_basic1_2
 			print('layer_norm',model_type_id,config['layer_norm'])
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample_2(context_size,config,layernorm_typeid=1)
-			#return -1
 		else:
 			model = utility_1_5.get_model2a1_attention_1_2_2_sample(context_size,config)
 
@@ -3538,9 +3511,6 @@ class _Base1(BaseEstimator):
 		self.file_path, self.file_prefix = path1, file_prefix
 		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
 
-		# x_train1 = np.asarray(np.random.rand(5000,context_size,n_step_local,feature_dim),dtype=np.float32)
-		# y_train1 = np.asarray(np.random.rand(5000,context_size,1),dtype=np.float32)
-
 		# find feature vectors with the serial
 		self.x = dict()
 		self.idx = dict()
@@ -3570,9 +3540,6 @@ class _Base1(BaseEstimator):
 			model_type_id = 0
 
 		model = self.get_model_sub1(model_type_id,context_size,config)
-
-		# model = utility_1.get_model2a1_word()
-		# return -1
 
 		if model_path1!="":
 			MODEL_PATH = model_path1
@@ -3610,7 +3577,6 @@ class _Base1(BaseEstimator):
 		# print(valid_score_1)
 
 		print('predict')
-
 		type_id1=1
 		type_id=1
 		interval=5000
@@ -3635,35 +3601,33 @@ class _Base1(BaseEstimator):
 
 	# training and prediction with sequence features
 	# quantile of attention
-	def control_pre_test3_predict_sub1(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
+	# def control_pre_test3_predict_sub1(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
 
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
+	# 	self.file_path, self.file_prefix = path1, file_prefix
+	# 	self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
 
-		data1, chromvec = utility_1.select_region1_sub(filename,type_id=1,data1=[],filename_centromere='')
-
+	# 	data1, chromvec = utility_1.select_region1_sub(filename,type_id=1,data1=[],filename_centromere='')
 
 	# training and prediction with sequence features
 	# important loci estimation
-	def control_pre_test3_predict_sub2(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
+	# def control_pre_test3_predict_sub2(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
 
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
-
+	# 	self.file_path, self.file_prefix = path1, file_prefix
+	# 	self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
 
 	# training and prediction with sequence features
 	# important loci estimated compared with specific elements
-	def control_pre_test3_predict_sel1(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
+	# def control_pre_test3_predict_sel1(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
 
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
+	# 	self.file_path, self.file_prefix = path1, file_prefix
+	# 	self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
 
 	# training and prediction with sequence features
 	# important loci estimated compared with sepcific elements: ERCEs
-	def control_pre_test3_predict_sel2(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
+	# def control_pre_test3_predict_sel2(self,path1,file_prefix,model_path1='',type_id=-1,est_attention=1,output_filename=''):
 
-		self.file_path, self.file_prefix = path1, file_prefix
-		self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
+	# 	self.file_path, self.file_prefix = path1, file_prefix
+	# 	self.prep_data_2_sub1(path1,file_prefix,type_id1=1,type_id2=1)
 
 	def control_pre_test3_1(self,path1,file_prefix,model_path1=''):
 

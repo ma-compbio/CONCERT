@@ -15,8 +15,7 @@ from keras_self_attention import SeqSelfAttention
 from keras.engine.topology import Layer
 from keras_layer_normalization import LayerNormalization
 from keras.layers import Input, Dense, Average, Reshape, Lambda, Conv1D, Flatten, MaxPooling1D, UpSampling1D, GlobalMaxPooling1D
-# from keras.layers import LSTM, Bidirectional, BatchNormalization, Dropout, Concatenate, Embedding, Activation, Dot, dot
-from keras.layers import BatchNormalization, Dropout, Concatenate, Embedding, Activation,Dot,dot
+from keras.layers import LSTM, Bidirectional, BatchNormalization, Dropout, Concatenate, Embedding, Activation, Dot, dot
 from keras.layers import TimeDistributed, RepeatVector, Permute, merge, Multiply
 from keras.activations import relu
 from keras.layers.advanced_activations import LeakyReLU, PReLU, ReLU
@@ -4281,7 +4280,6 @@ def generate_serial(filename1,chrom,start,stop):
 	print(chrom)
 	print(len(chrom))
 	
-	# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 	data1 = pd.read_csv(filename1,header=None,sep='\t')
 	ref_chrom, chrom_size = np.asarray(data1[0]), np.asarray(data1[1])
 	serial_start = 0
@@ -4318,7 +4316,6 @@ def generate_serial_start(filename1,chrom,start,stop,chrom_num,type_id=0):
 	print(chrom)
 	print(len(chrom))
 	
-	# filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 	data1 = pd.read_csv(filename1,header=None,sep='\t')
 	ref_chrom, chrom_size = np.asarray(data1[0]), np.asarray(data1[1])
 	serial_start = 0
@@ -4358,7 +4355,6 @@ def generate_serial_single(chrom,start,stop):
 	print(chrom)
 	print(len(chrom))
 	
-	filename1 = '/volume01/yy3/seq_data/genome/hg38.chrom.sizes'
 	data1 = pd.read_csv(filename1,header=None,sep='\t')
 	ref_chrom, chrom_size = np.asarray(data1[0]), np.asarray(data1[1])
 	serial_start = 0
@@ -5151,18 +5147,6 @@ def get_model2a1_basic1(input1,config):
 									kernel_regularizer=regularizers.l2(regularizer2_2),
 									return_sequences = True,
 									recurrent_dropout = 0.1),name='bilstm1')
-	# biLSTM_layer1 = Bidirectional(LSTM(
-	# 								activation='tanh',
-	# 								units=output_dim,
-	# 								kernel_regularizer=regularizers.l2(regularizer2_2),
-	# 								return_sequences = True,
-	# 								recurrent_dropout = 0.1),name='bilstm1')
-	# biLSTM_layer1 = Bidirectional(LSTM(
-	# 								activation='linear',
-	# 								units=output_dim,
-	# 								kernel_regularizer=regularizers.l2(regularizer2_2),
-	# 								return_sequences = True,
-	# 								recurrent_dropout = 0.1),name='bilstm1')
 
 	x1 = biLSTM_layer1(layer_1)
 	# x1 = BatchNormalization()(x1)
@@ -5237,12 +5221,6 @@ def get_model2a1_basic1_2(input1,config):
 		regularizer2_2 = config['regularizer2_2']
 	else:
 		regularizer2_2 = 1e-05
-	# biLSTM_layer1 = Bidirectional(LSTM(
-	# 								activation='tanh',
-	# 								units=output_dim,
-	# 								kernel_regularizer=regularizers.l2(regularizer2_2),
-	# 								return_sequences = True,
-	# 								recurrent_dropout = 0.1),name='bilstm1')
 	biLSTM_layer1 = Bidirectional(LSTM(
 									activation='tanh',
 									units=output_dim,
@@ -5390,7 +5368,6 @@ def get_model2a1_basic1_2_ori(input1,config):
 
 
 # multiple convolution layers, self-attention
-# method 31, 35
 def get_model2a1_attention1_1(input_shape,config):
 
 	feature_dim, output_dim, fc1_output_dim = config['feature_dim'], config['output_dim'], config['fc1_output_dim']
@@ -5668,11 +5645,7 @@ def get_model2a1_convolution_pre(input_local,select_config):
 def get_model2a1_convolution(config):
 
 	size1 = config['n_step_local_ori']
-	# n_steps = config['context_size']
 	learning_rate = config['lr']
-	# activation = config['activation']
-	# activation_self = config['activation_self']
-	# activation3 = config['activation3']
 	if not('loss_function' in config):
 		loss_function = 'mean_squared_error'
 	else:
@@ -5682,11 +5655,7 @@ def get_model2a1_convolution(config):
 	dense_layer_output = get_model2a1_convolution_pre(input1,config)
 
 	conv_2 = config['conv_2'] # conv_2: [1,1,'sigmoid']
-	# drop_out_rate, n_dim, bnorm, activation = conv_2
-	# x1 = Dropout(drop_out_rate)(x1)
 	n_dim, bnorm, activation = conv_2[0:3]
-	# output = Dense(1,activation= 'sigmoid')(dense1)
-	# output = Dense(1,activation= 'sigmoid')(dense_layer_output)
 	output = Dense(n_dim)(dense_layer_output)
 	if bnorm>0:
 		output = BatchNormalization()(output)
@@ -5695,10 +5664,7 @@ def get_model2a1_convolution(config):
 
 	model = Model(input = input1, output = output)
 	adam = Adam(lr = learning_rate)
-	# model.compile(adam,loss = 'binary_crossentropy',metrics=['accuracy'])
-	# model.compile(adam,loss = 'kullback_leibler_divergence',metrics=['accuracy'])
 	model.compile(adam,loss = loss_function)
-	# model.compile(adam,loss = 'kullback_leibler_divergence')
 
 	model.summary()
 	
@@ -5862,11 +5828,10 @@ def find_optimizer(config):
 	if 'decay_rate1' in config:
 		decay_rate1 = config['decay_rate1']
 	
-	lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-		initial_learning_rate=init_lr,
-		decay_steps=50,
-		decay_rate=decay_rate1,
-		staircase=True)
+	lr_schedule = keras.optimizers.schedules.ExponentialDecay(initial_learning_rate=init_lr,
+																decay_steps=50,
+																decay_rate=decay_rate1,
+																staircase=True)
 
 	lr = config['lr']
 	lr_id = 1-config['lr_schedule']
@@ -6098,26 +6063,10 @@ def get_model2a1_attention_1_2_2_sample5(config):
 	typeid_sample = config['typeid_sample']
 	loss_function = config['loss_function']
 
-	# n_step_local_ori, n_step_local = config['n_step_local_ori'], config['n_step_local']
 	n_step_local_ori = config['n_step_local_ori']
-	# input_shape_1 = [n_step_local,feature_dim]
-	# return_sequences_flag1 = True
-	# config.update({'input_shape_1':input_shape_1})
-	# encoder_1 = get_model2a1_basic5(config)
-	# encoder_1.summary()
-
+	
 	input_region = Input(shape=(n_steps,n_step_local_ori,feature_dim))
-	# layer_2 = TimeDistributed(encoder_1,name='encoder_1')(input_region) # shape: (n_steps,feature_dim2*2)
-	# print(layer_2.shape)
-
-	# feature_dim1, feature_dim2, return_sequences_flag = config['local_vec_1']
-	# if return_sequences_flag==True:
-	# 	if config['attention2_local']==1:
-	# 		layer_2, attention2 = TimeDistributed(SeqSelfAttention(return_attention=True, attention_activation=activation_self),name='attention_local_1')(layer_2)
-
-	# 	layer_2 = TimeDistributed(GlobalMaxPooling1D(),name='global_pooling_local_1')(layer_2)
-
-	# layer_2 = get_model2a1_basic5_1(input_region,config)
+	
 	layer_2 = get_model2a1_basic5_convolution(input_region,config)
 	print(layer_2.shape)
 
@@ -6712,11 +6661,13 @@ def read_predict_weighted(y, vec, idx, flanking1=3):
 	return value
 
 def dot_layer(inputs):
+	
 	x,y = inputs
 
 	return K.sum(x*y,axis = -1,keepdims=True)
 
 def corr(y_true, y_pred):
+
 	return np.min(np.corrcoef(y_true,y_pred))
 
 def score_function(y_test, y_pred, y_proba):
@@ -6804,16 +6755,9 @@ def load_samples_kmer(chrom_vec,chrom,seq,kmer_size,kmer_dict1,path_1):
 
 	return True
 
-def score_2(y, y_predicted):
-
-	score1 = mean_squared_error(y, y_predicted)
-	score2 = pearsonr(y, y_predicted)
-
-	return score1, score2
-
 def load_kmer_single(species_name):
 
-	path1 = '/volume01/yy3/seq_data/dl/replication_timing'
+	path1 = './'
 	filename1 = '%s/training2_kmer_%s.npy'%(path1,species_name)
 	filename2 = '%s/training2_kmer_%s.serial.npy'%(path1,species_name)
 
@@ -6827,8 +6771,6 @@ def load_kmer_single(species_name):
 	colname1, colname2 = list(temp1), list(temp2)
 	chrom1, start1, stop1, serial1 = temp1[colname1[0]], temp1[colname1[1]], temp1[colname1[2]], temp1[colname1[3]]
 	chrom2, start2, stop2, serial2 = temp2[colname2[0]], temp2[colname2[1]], temp2[colname2[2]], temp2[colname2[3]]
-
-	map_idx = mapping_Idx(serial1,serial2)
 	
 	data1_sub = data1[map_idx]
 	print(data1.shape, data1_sub.shape)
